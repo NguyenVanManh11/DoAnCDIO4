@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin Dashboard - Coffee Journey</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'coffee-bg': '#f7f4e9',
+                        'coffee-green': '#307848',
+                        'coffee-yellow': '#dfb252',
+                        'coffee-dark': '#3b2c25',
+                        'coffee-cup': '#f3e1a9'
+                    },
+                    fontFamily: {
+                        'sans': ['ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .bg-grid-pattern {
+            background-color: #f7f4e9;
+            background-image:
+                linear-gradient(#e8e5d6 1px, transparent 1px),
+                linear-gradient(90deg, #e8e5d6 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+        }
+
+        /* Hệ thống Typography Tinh gọn mới cho Admin (Quy tắc nghiêm ngặt) */
+        .text-size-0 {
+            font-size: 0.85rem;
+            line-height: 1.25rem;
+        }
+
+        .text-size-1 {
+            font-size: 1rem;
+            line-height: 1.5rem;
+        }
+
+        .text-size-2 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Biểu đồ cột CSS */
+        .bar-chart-fill {
+            transition: width 1s ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="font-sans text-coffee-dark no-scrollbar bg-coffee-bg transition-all duration-300">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- MOCK DATA BAN ĐẦU ---
+        const DUMMY_ADMIN = { NguoiDungID: 2, TenDangNhap: 'admin', MatKhau: 'admin123', HoTen: 'Quản Trị Viên', VaiTroID: 1, VaiTro: 'Admin' };
+
+        const MOCK_STATS = { doanhThu: 4500000, donHang: 38, khachHang: 24, danhGia: 4.8 };
+
+        const INITIAL_ORDERS = [
+            { id: '#DH1005', time: '10:30 - Hôm nay', customer: 'Nguyễn Văn A', type: 'Tại quán', total: 125000, status: 'Chờ xác nhận', items: ['2x Bạc Xỉu', '1x Tiramisu'] },
+            { id: '#DH1004', time: '10:15 - Hôm nay', customer: 'Trần Thị B', type: 'Giao hàng', total: 85000, status: 'Đang xử lý', items: ['1x Trà Đào Cam Sả', '1x Croissant'] },
+            { id: '#DH1003', time: '09:45 - Hôm nay', customer: 'Lê Văn C', type: 'Mang đi', total: 35000, status: 'Hoàn thành', items: ['1x Espresso Ý'] },
+        ];
+
+        const INITIAL_PRODUCTS = [
+            { id: 1, name: 'Cà Phê Đen', price: 25000, stock: 50, category: 'Cà Phê', icon: 'fa-mug-hot' },
+            { id: 2, name: 'Bạc Xỉu Đá', price: 30000, stock: 45, category: 'Cà Phê', icon: 'fa-mug-saucer' },
+            { id: 3, name: 'Trà Đào Cam Sả', price: 40000, stock: 20, category: 'Trà', icon: 'fa-glass-water' },
+            { id: 4, name: 'Bánh Croissant', price: 35000, stock: 15, category: 'Bánh', icon: 'fa-cookie' },
+        ];
+
+        const INITIAL_CUSTOMERS = [
+            { id: 1, name: 'Nguyễn Văn Khách', phone: '0987654321', tier: 'Gold', points: 1250, totalSpent: 4500000, status: 'Hoạt động' },
+            { id: 2, name: 'Trần Thị B', phone: '0911222333', tier: 'Silver', points: 450, totalSpent: 1200000, status: 'Hoạt động' },
+            { id: 3, name: 'Lê Văn C', phone: '0933444555', tier: 'Diamond', points: 5600, totalSpent: 15600000, status: 'Hoạt động' },
+            { id: 4, name: 'Hoàng Bất Ổn', phone: '0999888777', tier: 'Silver', points: 0, totalSpent: 50000, status: 'Bị Khóa' },
+        ];
+
+        const CATEGORIES = ['Cà Phê', 'Trà', 'Bánh', 'Khác'];
+
+        // --- COMPONENTS ---
+
+        // 1. Modal Đăng Nhập
+        const AuthModal = ({ onLogin }) => {
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+
+            const handleLogin = (e) => {
+                e.preventDefault();
+                if (username === DUMMY_ADMIN.TenDangNhap && password === DUMMY_ADMIN.MatKhau) onLogin(DUMMY_ADMIN);
+                else setError('Sai tài khoản quản trị!');
+            };
+
+            return (
+                <div className="fixed inset-0 bg-coffee-dark/80 backdrop-blur-md flex items-center justify-center z-[100] p-4">
+                    <div className="glass-effect p-8 rounded-[2rem] relative max-w-sm w-full shadow-2xl border border-white/20">
+                        <div className="w-16 h-16 bg-coffee-green rounded-[1.5rem] flex items-center justify-center text-white mx-auto mb-4 shadow-lg rotate-3">
+                            <i className="fa-solid fa-user-shield text-size-2 -rotate-3"></i>
+                        </div>
+                        <h2 className="text-size-2 font-black text-coffee-dark mb-1 text-center uppercase tracking-tighter">Hệ Thống</h2>
+                        <h3 className="text-size-0 font-black text-gray-500 uppercase tracking-widest text-center mb-6">Dành Cho Quản Trị</h3>
+
+                        <div className="bg-white/50 p-3 mb-4 rounded-xl text-size-0 text-center font-bold border border-white">
+                            Demo: <span className="text-coffee-green">admin</span> / <span className="text-coffee-green">admin123</span>
+                        </div>
+
+                        {error && <p className="text-red-500 mb-4 text-size-0 font-bold text-center bg-red-50 py-2 rounded-lg">{error}</p>}
+
+                        <form onSubmit={handleLogin} className="space-y-3">
+                            <input type="text" placeholder="Tên đăng nhập" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full p-3 rounded-xl bg-white/80 border border-gray-200 text-size-1 font-bold outline-none focus:border-coffee-green" required />
+                            <input type="password" placeholder="Mật khẩu" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 rounded-xl bg-white/80 border border-gray-200 text-size-1 font-bold outline-none focus:border-coffee-green" required />
+                            <button type="submit" className="w-full bg-coffee-green text-white font-black text-size-1 py-3 rounded-xl shadow-lg hover:bg-green-800 transition-colors uppercase tracking-widest mt-2">Truy Cập</button>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // 2. Sidebar
+        const Sidebar = ({ activeTab, setActiveTab, onLogout }) => {
+            const menu = [
+                { id: 'dashboard', icon: 'fa-chart-pie', label: 'Tổng Quan' },
+                { id: 'orders', icon: 'fa-receipt', label: 'Đơn Hàng' },
+                { id: 'tables', icon: 'fa-chair', label: 'Sơ Đồ Bàn' },
+                { id: 'products', icon: 'fa-box', label: 'Sản Phẩm' },
+                { id: 'users', icon: 'fa-users', label: 'Khách Hàng' },
+                { id: 'reports', icon: 'fa-chart-column', label: 'Báo Cáo' },
+                { id: 'settings', icon: 'fa-gear', label: 'Cài Đặt' },
+            ];
+
+            return (
+                <div className="w-full md:w-64 glass-effect border-r border-white/50 flex flex-col shrink-0 h-auto md:h-full md:rounded-l-[2rem] z-20">
+                    <div className="p-6 flex items-center gap-3 border-b border-white/50">
+                        <div className="w-10 h-10 bg-coffee-green rounded-xl flex items-center justify-center text-white shadow-sm shrink-0">
+                            <i className="fa-solid fa-seedling text-size-1"></i>
+                        </div>
+                        <span className="text-size-2 font-black tracking-tighter text-coffee-dark uppercase leading-none hidden md:block truncate">Admin</span>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto no-scrollbar p-3 flex md:flex-col gap-1">
+                        {menu.map(item => (
+                            <button
+                                key={item.id}
+                                onClick={() => setActiveTab(item.id)}
+                                className={`flex items-center justify-center md:justify-start gap-3 p-3 rounded-xl transition-all whitespace-nowrap ${activeTab === item.id ? 'bg-white shadow-sm border border-gray-100' : 'hover:bg-white/40 text-gray-500'}`}
+                            >
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${activeTab === item.id ? 'bg-coffee-green text-white' : 'bg-gray-100'}`}>
+                                    <i className={`fa-solid ${item.icon} text-size-0`}></i>
+                                </div>
+                                <span className={`text-size-0 font-black uppercase tracking-widest hidden md:block ${activeTab === item.id ? 'text-coffee-dark' : ''}`}>{item.label}</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="p-4 border-t border-white/50 hidden md:block">
+                        <button onClick={onLogout} className="w-full py-3 text-size-0 font-black uppercase tracking-widest text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-colors border border-red-100">Đăng Xuất</button>
+                    </div>
+                </div>
+            );
+        };
+
+        // 3. Tab: Tổng quan
+        const DashboardView = ({ orders }) => (
+            <div className="p-4 md:p-6 animate-fade-in h-full overflow-y-auto no-scrollbar">
+                <h2 className="text-size-2 font-black uppercase text-coffee-dark tracking-tighter mb-6">Tổng Quan Hôm Nay</h2>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    {[
+                        { label: 'Doanh thu', val: `${MOCK_STATS.doanhThu.toLocaleString()}đ`, icon: 'fa-money-bill-wave', color: 'text-coffee-green', bg: 'bg-green-100' },
+                        { label: 'Đơn hàng', val: orders.length, icon: 'fa-receipt', color: 'text-blue-500', bg: 'bg-blue-100' },
+                        { label: 'Khách ghé thăm', val: MOCK_STATS.khachHang, icon: 'fa-users', color: 'text-coffee-yellow', bg: 'bg-yellow-100' },
+                        { label: 'Đánh giá (TB)', val: `${MOCK_STATS.danhGia}/5`, icon: 'fa-star', color: 'text-orange-500', bg: 'bg-orange-100' },
+                    ].map((stat, i) => (
+                        <div key={i} className="glass-effect p-4 md:p-5 rounded-2xl border border-white shadow-sm flex flex-col justify-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.bg} ${stat.color}`}>
+                                <i className={`fa-solid ${stat.icon} text-size-1`}></i>
+                            </div>
+                            <div>
+                                <p className="text-size-0 font-black uppercase tracking-widest text-gray-500 mb-1 truncate">{stat.label}</p>
+                                <p className="text-size-1 font-black text-coffee-dark truncate">{stat.val}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="glass-effect p-4 md:p-6 rounded-2xl border border-white shadow-sm">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-size-1 font-black uppercase tracking-widest text-coffee-dark">Đơn hàng gần đây</h3>
+                    </div>
+                    <div className="w-full overflow-x-auto no-scrollbar">
+                        <div className="min-w-[600px] flex flex-col gap-2">
+                            <div className="flex bg-white/60 p-3 rounded-xl border border-gray-100 text-size-0 font-black uppercase text-gray-500 tracking-widest">
+                                <div className="w-24">Mã Đơn</div>
+                                <div className="flex-1">Khách Hàng</div>
+                                <div className="w-28 text-right">Tổng Tiền</div>
+                                <div className="w-32 text-right">Trạng Thái</div>
+                            </div>
+                            {orders.slice(0, 5).map((order, i) => (
+                                <div key={i} className="flex items-center bg-white/80 p-3 rounded-xl border border-white shadow-sm">
+                                    <div className="w-24">
+                                        <p className="text-size-1 font-black text-coffee-dark">{order.id}</p>
+                                        <p className="text-size-0 font-bold text-gray-400">{order.type}</p>
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-size-1 font-black uppercase text-gray-700 truncate">{order.customer}</p>
+                                        <p className="text-size-0 font-bold text-gray-500 truncate">{order.items.join(', ')}</p>
+                                    </div>
+                                    <div className="w-28 text-right">
+                                        <p className="text-size-1 font-black text-coffee-green">{order.total.toLocaleString()}đ</p>
+                                    </div>
+                                    <div className="w-32 text-right">
+                                        <span className={`inline-block px-3 py-1 rounded-lg text-size-0 font-black ${order.status === 'Chờ xác nhận' ? 'bg-yellow-50 text-yellow-600' :
+                                                order.status === 'Đang xử lý' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'
+                                            }`}>{order.status}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        // 4. Tab: Quản lý Đơn hàng (Cập nhật Logic State)
+        const OrdersView = ({ orders, setOrders, showNotify }) => {
+            const [filter, setFilter] = useState('Tất cả');
+            const tabs = ['Tất cả', 'Chờ xác nhận', 'Đang xử lý', 'Hoàn thành'];
+
+            const updateStatus = (id, newStatus) => {
+                setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o));
+                showNotify(`Đã chuyển đơn ${id} sang: ${newStatus}`);
+            };
+
+            return (
+                <div className="p-4 md:p-6 animate-fade-in h-full overflow-y-auto no-scrollbar flex flex-col">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 shrink-0">
+                        <h2 className="text-size-2 font-black uppercase text-coffee-dark tracking-tighter">Đơn Hàng</h2>
+
+                        <div className="flex gap-1 overflow-x-auto no-scrollbar bg-white/40 p-1.5 rounded-xl border border-white">
+                            {tabs.map(t => (
+                                <button
+                                    key={t} onClick={() => setFilter(t)}
+                                    className={`px-4 py-2 rounded-lg text-size-0 font-black uppercase tracking-widest whitespace-nowrap transition-all ${filter === t ? 'bg-coffee-dark text-white' : 'text-gray-600 hover:bg-white'}`}
+                                >
+                                    {t}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {orders.filter(o => filter === 'Tất cả' || o.status === filter).map((order, i) => (
+                            <div key={i} className="glass-effect p-5 rounded-2xl border border-white shadow-sm flex flex-col">
+                                <div className="flex justify-between items-start mb-3 border-b border-gray-200 pb-3">
+                                    <div>
+                                        <span className="text-size-1 font-black text-coffee-dark">{order.id}</span>
+                                        <p className="text-size-0 font-bold text-gray-500 mt-1">{order.time}</p>
+                                    </div>
+                                    <span className={`px-3 py-1 rounded-lg text-size-0 font-black ${order.status === 'Chờ xác nhận' ? 'bg-yellow-50 text-yellow-600' :
+                                            order.status === 'Đang xử lý' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'
+                                        }`}>{order.status}</span>
+                                </div>
+
+                                <div className="flex-1 mb-4 space-y-1">
+                                    <p className="text-size-0 font-black uppercase text-coffee-dark"><i className="fa-solid fa-user mr-2 text-gray-400"></i>{order.customer}</p>
+                                    <p className="text-size-0 font-bold text-gray-600"><i className="fa-solid fa-motorcycle mr-2 text-gray-400"></i>{order.type}</p>
+
+                                    <div className="bg-gray-50 p-3 rounded-xl mt-3 border border-gray-100">
+                                        <p className="text-size-0 font-black uppercase text-gray-400 mb-1">Món Order</p>
+                                        {order.items.map((item, idx) => (
+                                            <p key={idx} className="text-size-0 font-bold text-gray-700">• {item}</p>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+                                    <span className="text-size-0 font-black text-gray-500 uppercase">Tổng: <span className="text-coffee-green text-size-1">{order.total.toLocaleString()}đ</span></span>
+                                    {order.status === 'Chờ xác nhận' && <button onClick={() => updateStatus(order.id, 'Đang xử lý')} className="bg-coffee-yellow text-coffee-dark px-4 py-2 rounded-lg text-size-0 font-black uppercase hover:bg-yellow-400 transition-colors">Nhận Đơn</button>}
+                                    {order.status === 'Đang xử lý' && <button onClick={() => updateStatus(order.id, 'Hoàn thành')} className="bg-coffee-green text-white px-4 py-2 rounded-lg text-size-0 font-black uppercase hover:bg-green-800 transition-colors">Hoàn Thành</button>}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // 5. Tab: Quản lý Bàn
+        const TablesView = () => {
+            const [tables, setTables] = useState([
+                { id: 1, name: 'Bàn 1', seats: 2, type: 'round', top: '15%', left: '35%', status: 'Trong' },
+                { id: 2, name: 'Bàn 2', seats: 2, type: 'round', top: '15%', left: '55%', status: 'DangDung' },
+                { id: 3, name: 'Bàn 3', seats: 4, type: 'rect', top: '50%', left: '25%', status: 'Trong' },
+                { id: 4, name: 'Bàn 4', seats: 4, type: 'rect', top: '50%', left: '50%', status: 'DaDat' },
+                { id: 5, name: 'VIP 1', seats: 6, type: 'rect', top: '25%', left: '80%', status: 'Trong' },
+                { id: 6, name: 'Bàn 5', seats: 4, type: 'round', top: '80%', left: '30%', status: 'Trong' },
+                { id: 7, name: 'Bàn 6', seats: 4, type: 'rect', top: '80%', left: '60%', status: 'Trong' },
+                { id: 8, name: 'Bàn 7', seats: 4, type: 'rect', top: '80%', left: '85%', status: 'Trong' }
+            ]);
+
+            const [reservations, setReservations] = useState([
+                { id: '#DB001', customer: 'Hoàng Anh', phone: '0988111222', tableId: 4, time: '19:00', note: 'Sinh nhật', status: 'Chờ duyệt' },
+            ]);
+
+            const toggleTableStatus = (id) => {
+                setTables(tables.map(t => {
+                    if (t.id === id) {
+                        if (t.status === 'Trong') return { ...t, status: 'DangDung' };
+                        if (t.status === 'DangDung') return { ...t, status: 'Trong' };
+                    }
+                    return t;
+                }));
+            };
+
+            const approveReservation = (resId, tableId) => {
+                setReservations(reservations.filter(r => r.id !== resId));
+                setTables(tables.map(t => t.id === tableId ? { ...t, status: 'DaDat' } : t));
+            };
+
+            const renderChairs = (seats, type) => {
+                let chairs = [];
+                for (let i = 0; i < seats; i++) {
+                    let posClass = '';
+                    if (type === 'round') {
+                        const angle = (i / seats) * 360;
+                        posClass = `absolute w-2 h-2 md:w-3 md:h-3 bg-gray-300 rounded-full border border-gray-400`;
+                        chairs.push(<div key={i} className={posClass} style={{ transform: `rotate(${angle}deg) translateY(-140%)`, top: '50%', left: '50%', marginTop: '-0.125rem', marginLeft: '-0.125rem' }}></div>);
+                    } else {
+                        const isTop = i < seats / 2;
+                        const lr = seats > 4 ? (i % (seats / 2) * 35) + 15 : (i % 2 * 50) + 25;
+                        posClass = `absolute w-3 h-2 md:w-4 md:h-3 bg-gray-300 rounded-full border border-gray-400 ${isTop ? '-top-1.5' : '-bottom-1.5'}`;
+                        chairs.push(<div key={i} className={posClass} style={{ left: `${lr}%`, transform: 'translateX(-50%)' }}></div>);
+                    }
+                }
+                return chairs;
+            };
+
+            return (
+                <div className="p-4 md:p-6 animate-fade-in h-full overflow-y-auto no-scrollbar flex flex-col">
+                    <h2 className="text-size-2 font-black uppercase text-coffee-dark tracking-tighter mb-6 shrink-0">Sơ Đồ Bàn</h2>
+                    <div className="flex flex-col lg:flex-row gap-6 h-full min-h-0">
+                        <div className="flex-[2] glass-effect p-4 md:p-5 rounded-2xl border border-white shadow-sm flex flex-col">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-size-1 font-black uppercase tracking-widest text-coffee-dark">Trạng Thái Không Gian</h3>
+                                <div className="flex gap-3 text-size-0 font-bold text-gray-600">
+                                    <span className="flex items-center gap-1"><div className="w-3 h-3 rounded-full border border-gray-400 bg-white"></div> Trống</span>
+                                    <span className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-coffee-yellow"></div> Đã Đặt</span>
+                                    <span className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-red-500"></div> Đang Dùng</span>
+                                </div>
+                            </div>
+
+                            <div className="relative w-full aspect-[4/3] md:aspect-[16/9] bg-white/50 rounded-[2rem] border-2 border-dashed border-gray-300 overflow-hidden shadow-inner">
+                                <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(#e5e7eb 1px, transparent 1px), linear-gradient(90deg, #e5e7eb 1px, transparent 1px)', backgroundSize: '20px 20px', opacity: 0.5 }}></div>
+
+                                <div className="absolute top-0 left-0 w-[25%] h-[35%] bg-coffee-dark rounded-br-[2rem] flex flex-col items-center justify-center text-coffee-cup shadow-lg z-10 border-r-4 border-b-4 border-coffee-dark/80">
+                                    <i className="fa-solid fa-mug-hot text-size-2 mb-1"></i>
+                                    <span className="text-size-1 font-black uppercase">Quầy Bar</span>
+                                </div>
+                                <div className="absolute top-0 right-0 w-[35%] h-[45%] bg-yellow-100/50 rounded-bl-[2rem] border-l-2 border-b-2 border-dashed border-coffee-yellow flex items-start justify-end p-4">
+                                    <span className="text-size-1 font-black text-coffee-yellow uppercase opacity-80"><i className="fa-solid fa-crown mr-1"></i> VIP</span>
+                                </div>
+                                <div className="absolute bottom-0 right-0 left-[20%] h-[35%] bg-green-100/50 rounded-tl-[2rem] border-t-2 border-l-2 border-dashed border-coffee-green flex items-end justify-end p-4">
+                                    <span className="text-size-1 font-black text-coffee-green uppercase opacity-80"><i className="fa-solid fa-tree mr-1"></i> Sân Vườn</span>
+                                </div>
+
+                                {tables.map(t => {
+                                    const baseClass = t.type === 'round' ? 'rounded-full' : 'rounded-xl';
+                                    const sizeClass = t.type === 'round' ? 'w-10 h-10 md:w-14 md:h-14' : (t.seats > 4 ? 'w-16 h-10 md:w-24 md:h-14' : 'w-12 h-10 md:w-16 md:h-14');
+
+                                    let stateClass = 'bg-white border-gray-400 text-gray-700 hover:ring-2 ring-coffee-green cursor-pointer shadow-md';
+                                    if (t.status === 'DangDung') stateClass = 'bg-red-500 border-red-600 text-white shadow-md cursor-pointer hover:ring-2 ring-red-300';
+                                    if (t.status === 'DaDat') stateClass = 'bg-coffee-yellow border-yellow-600 text-white cursor-pointer';
+
+                                    return (
+                                        <div key={t.id} onClick={() => toggleTableStatus(t.id)}
+                                            className={`absolute flex items-center justify-center border-2 transition-all duration-300 ${baseClass} ${sizeClass} ${stateClass}`}
+                                            style={{ top: t.top, left: t.left, transform: 'translate(-50%, -50%)' }}
+                                        >
+                                            <span className="text-[0.6rem] md:text-[0.8rem] font-black z-10 leading-none text-center">{t.name}</span>
+                                            {renderChairs(t.seats, t.type)}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                            <p className="text-size-0 text-gray-500 mt-3 text-center italic"><i className="fa-solid fa-hand-pointer mr-1"></i> Click vào bàn để cập nhật khách vào ngồi/rời đi.</p>
+                        </div>
+
+                        <div className="flex-1 glass-effect p-4 md:p-5 rounded-2xl border border-white shadow-sm flex flex-col h-full">
+                            <h3 className="text-size-1 font-black uppercase tracking-widest text-coffee-dark mb-4">Yêu cầu Đặt Bàn</h3>
+                            <div className="flex-1 overflow-y-auto no-scrollbar space-y-3">
+                                {reservations.length === 0 ? (
+                                    <p className="text-size-0 text-center text-gray-400 mt-10 font-bold">Không có yêu cầu mới.</p>
+                                ) : reservations.map(r => {
+                                    const tableName = tables.find(t => t.id === r.tableId)?.name || 'Bàn?';
+                                    return (
+                                        <div key={r.id} className="bg-white/80 p-4 rounded-xl border border-gray-100 shadow-sm">
+                                            <div className="flex justify-between items-start border-b border-gray-100 pb-2 mb-2">
+                                                <span className="text-size-1 font-black text-coffee-dark">{r.id}</span>
+                                                <span className="text-size-0 font-bold text-coffee-yellow bg-yellow-50 px-2 py-0.5 rounded border border-yellow-100">{tableName}</span>
+                                            </div>
+                                            <div className="space-y-1 mb-3">
+                                                <p className="text-size-0 font-black uppercase"><i className="fa-solid fa-user text-gray-400 w-4"></i> {r.customer} - {r.phone}</p>
+                                                <p className="text-size-0 font-bold text-gray-600"><i className="fa-solid fa-clock text-gray-400 w-4"></i> {r.time}</p>
+                                                {r.note && <p className="text-size-0 font-medium text-orange-500"><i className="fa-solid fa-comment text-gray-400 w-4"></i> {r.note}</p>}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => approveReservation(r.id, r.tableId)} className="flex-1 bg-coffee-green text-white py-2 rounded-lg text-size-0 font-black uppercase hover:bg-green-800 transition-colors">Duyệt</button>
+                                                <button onClick={() => setReservations(reservations.filter(x => x.id !== r.id))} className="flex-1 bg-red-50 text-red-500 border border-red-100 py-2 rounded-lg text-size-0 font-black uppercase hover:bg-red-100 transition-colors">Hủy</button>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 6. Tab: Quản lý Khách Hàng (TÍNH NĂNG MỚI)
+        const UsersView = ({ customers, setCustomers, showNotify }) => {
+            const toggleStatus = (id) => {
+                setCustomers(customers.map(c => {
+                    if (c.id === id) {
+                        const newStatus = c.status === 'Hoạt động' ? 'Bị Khóa' : 'Hoạt động';
+                        showNotify(`Đã ${newStatus === 'Bị Khóa' ? 'khóa' : 'mở khóa'} tài khoản ${c.name}`);
+                        return { ...c, status: newStatus };
+                    }
+                    return c;
+                }));
+            };
+
+            return (
+                <div className="p-4 md:p-6 animate-fade-in h-full overflow-y-auto no-scrollbar relative">
+                    <h2 className="text-size-2 font-black uppercase text-coffee-dark tracking-tighter mb-6">Quản Lý Khách Hàng</h2>
+
+                    <div className="glass-effect p-4 md:p-6 rounded-[2rem] border border-white shadow-xl">
+                        <div className="w-full overflow-x-auto no-scrollbar">
+                            <div className="min-w-[800px] flex flex-col gap-2">
+                                <div className="flex bg-white/60 p-3 rounded-xl border border-gray-100 text-size-0 font-black uppercase text-gray-500 tracking-widest">
+                                    <div className="w-16 text-center">ID</div>
+                                    <div className="flex-1">Thông Tin & Liên Hệ</div>
+                                    <div className="w-32 text-center">Hạng & Điểm</div>
+                                    <div className="w-32 text-right">Tổng Chi Tiêu</div>
+                                    <div className="w-32 text-right">Trạng Thái</div>
+                                </div>
+
+                                {customers.map((cust) => (
+                                    <div key={cust.id} className="flex items-center bg-white/80 p-3 rounded-xl border border-white shadow-sm hover:shadow-md transition-shadow">
+                                        <div className="w-16 text-center text-size-1 font-black text-gray-400">#{cust.id}</div>
+                                        <div className="flex-1 flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center shrink-0 border border-gray-200"><i className="fa-solid fa-user"></i></div>
+                                            <div>
+                                                <p className="text-size-1 font-black uppercase text-coffee-dark truncate">{cust.name}</p>
+                                                <p className="text-size-0 font-bold text-gray-500 truncate"><i className="fa-solid fa-phone text-xs mr-1"></i>{cust.phone}</p>
+                                            </div>
+                                        </div>
+                                        <div className="w-32 text-center">
+                                            <p className={`text-size-0 font-black px-2 py-0.5 rounded border uppercase inline-block mb-1 ${cust.tier === 'Diamond' ? 'bg-blue-50 text-blue-500 border-blue-100' :
+                                                    cust.tier === 'Gold' ? 'bg-yellow-50 text-yellow-600 border-yellow-100' : 'bg-gray-50 text-gray-500 border-gray-200'
+                                                }`}>{cust.tier}</p>
+                                            <p className="text-size-0 font-bold text-gray-600">{cust.points} đ</p>
+                                        </div>
+                                        <div className="w-32 text-right">
+                                            <p className="text-size-1 font-black text-coffee-green">{cust.totalSpent.toLocaleString()}đ</p>
+                                        </div>
+                                        <div className="w-32 flex justify-end gap-2">
+                                            <span className={`inline-block px-3 py-1 rounded-lg text-size-0 font-black mr-2 ${cust.status === 'Hoạt động' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>{cust.status}</span>
+                                            <button onClick={() => toggleStatus(cust.id)} className={`w-8 h-8 rounded-lg font-bold text-size-1 flex items-center justify-center transition-colors ${cust.status === 'Hoạt động' ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`} title={cust.status === 'Hoạt động' ? 'Khóa tài khoản' : 'Mở khóa'}>
+                                                <i className={`fa-solid ${cust.status === 'Hoạt động' ? 'fa-lock' : 'fa-unlock'}`}></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 7. Tab: Báo cáo Thống kê (CSS Charts) (TÍNH NĂNG MỚI)
+        const ReportsView = () => {
+            const TOP_PRODUCTS = [
+                { name: 'Bạc Xỉu Đá', sold: 1240, percent: 100 },
+                { name: 'Cà Phê Đen', sold: 980, percent: 79 },
+                { name: 'Trà Đào Cam Sả', sold: 850, percent: 68 },
+                { name: 'Tiramisu', sold: 420, percent: 33 },
+            ];
+
+            return (
+                <div className="p-4 md:p-6 animate-fade-in h-full overflow-y-auto no-scrollbar">
+                    <h2 className="text-size-2 font-black uppercase text-coffee-dark tracking-tighter mb-6">Báo Cáo Thống Kê</h2>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        {/* Thống kê Tổng quan (Bên trái) */}
+                        <div className="glass-effect p-6 rounded-[2rem] border border-white shadow-xl flex flex-col gap-4">
+                            <h3 className="text-size-1 font-black uppercase tracking-widest text-coffee-dark border-b border-gray-200 pb-3">Chỉ số kinh doanh (Tháng)</h3>
+                            <div className="flex items-center justify-between p-4 bg-white/60 rounded-xl border border-white">
+                                <div><p className="text-size-0 font-bold text-gray-500 uppercase">Tổng Doanh Thu</p><p className="text-size-2 font-black text-coffee-green">145,500,000đ</p></div>
+                                <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-size-1"><i className="fa-solid fa-arrow-trend-up"></i></div>
+                            </div>
+                            <div className="flex items-center justify-between p-4 bg-white/60 rounded-xl border border-white">
+                                <div><p className="text-size-0 font-bold text-gray-500 uppercase">Lợi Nhuận Gộp</p><p className="text-size-2 font-black text-coffee-yellow">65,200,000đ</p></div>
+                                <div className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center text-size-1"><i className="fa-solid fa-coins"></i></div>
+                            </div>
+                            <div className="flex items-center justify-between p-4 bg-white/60 rounded-xl border border-white">
+                                <div><p className="text-size-0 font-bold text-gray-500 uppercase">Tổng Số Đơn Hàng</p><p className="text-size-2 font-black text-blue-500">2,450</p></div>
+                                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-size-1"><i className="fa-solid fa-receipt"></i></div>
+                            </div>
+                        </div>
+
+                        {/* CSS Bar Chart: Sản phẩm bán chạy (Bên phải) */}
+                        <div className="glass-effect p-6 rounded-[2rem] border border-white shadow-xl">
+                            <h3 className="text-size-1 font-black uppercase tracking-widest text-coffee-dark border-b border-gray-200 pb-3 mb-6">Top Sản Phẩm Bán Chạy</h3>
+                            <div className="space-y-5">
+                                {TOP_PRODUCTS.map((prod, idx) => (
+                                    <div key={idx}>
+                                        <div className="flex justify-between items-end mb-1">
+                                            <span className="text-size-1 font-black text-gray-700">{prod.name}</span>
+                                            <span className="text-size-0 font-bold text-gray-500">{prod.sold} ly</span>
+                                        </div>
+                                        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
+                                            <div className="bg-coffee-green h-full rounded-full bar-chart-fill" style={{ width: `${prod.percent}%` }}></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-size-0 text-gray-500 italic mt-6 text-center">* Dữ liệu biểu đồ cột thu thập trong 30 ngày gần nhất.</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 8. Tab: Quản lý Sản phẩm (CRUD)
+        const ProductsView = ({ products, setProducts, showNotify }) => {
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [editingProd, setEditingProd] = useState(null);
+            const [formData, setFormData] = useState({ name: '', price: '', stock: '', category: 'Cà Phê', icon: 'fa-mug-hot' });
+
+            const openAdd = () => { setFormData({ name: '', price: '', stock: '', category: 'Cà Phê', icon: 'fa-mug-hot' }); setEditingProd(null); setIsModalOpen(true); };
+            const openEdit = (p) => { setFormData({ name: p.name, price: p.price, stock: p.stock, category: p.category, icon: p.icon }); setEditingProd(p); setIsModalOpen(true); };
+
+            const handleDelete = (id) => {
+                if (confirm('Bạn có chắc chắn muốn xóa món này?')) {
+                    setProducts(products.filter(p => p.id !== id));
+                    showNotify('Đã xóa món thành công!');
+                }
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (editingProd) {
+                    setProducts(products.map(p => p.id === editingProd.id ? { ...p, ...formData, price: Number(formData.price), stock: Number(formData.stock) } : p));
+                    showNotify('Cập nhật món thành công!');
+                } else {
+                    const newId = Math.max(...products.map(p => p.id), 0) + 1;
+                    setProducts([...products, { id: newId, ...formData, price: Number(formData.price), stock: Number(formData.stock) }]);
+                    showNotify('Thêm món mới thành công!');
+                }
+                setIsModalOpen(false);
+            };
+
+            return (
+                <div className="p-4 md:p-6 animate-fade-in h-full overflow-y-auto no-scrollbar relative">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                        <h2 className="text-size-2 font-black uppercase text-coffee-dark tracking-tighter">Sản Phẩm & Kho</h2>
+                        <button onClick={openAdd} className="bg-coffee-yellow text-coffee-dark px-6 py-3 rounded-xl font-black text-size-1 uppercase tracking-widest shadow-md hover:-translate-y-1 transition-transform border border-coffee-dark/10">
+                            <i className="fa-solid fa-plus mr-2"></i> Thêm Món
+                        </button>
+                    </div>
+
+                    <div className="glass-effect p-4 md:p-6 rounded-[2rem] border border-white shadow-xl">
+                        <div className="w-full overflow-x-auto no-scrollbar">
+                            <div className="min-w-[700px] flex flex-col gap-2">
+                                <div className="flex bg-white/60 p-3 rounded-xl border border-gray-100 text-size-0 font-black uppercase text-gray-500 tracking-widest">
+                                    <div className="w-16 text-center">ID</div>
+                                    <div className="flex-1">Tên Món & Danh Mục</div>
+                                    <div className="w-32 text-right">Giá Bán</div>
+                                    <div className="w-32 text-center">Tồn Kho</div>
+                                    <div className="w-32 text-right">Thao Tác</div>
+                                </div>
+
+                                {products.map((prod) => (
+                                    <div key={prod.id} className="flex items-center bg-white/80 p-3 rounded-xl border border-white shadow-sm hover:shadow-md transition-shadow">
+                                        <div className="w-16 text-center text-size-1 font-black text-gray-400">#{prod.id}</div>
+                                        <div className="flex-1 flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-lg bg-coffee-green/10 text-coffee-green flex items-center justify-center shrink-0"><i className={`fa-solid ${prod.icon}`}></i></div>
+                                            <div>
+                                                <p className="text-size-1 font-black uppercase text-coffee-dark">{prod.name}</p>
+                                                <p className="text-size-0 font-bold text-coffee-green bg-green-50 px-2 py-0.5 inline-block rounded border border-green-100 mt-1">{prod.category}</p>
+                                            </div>
+                                        </div>
+                                        <div className="w-32 text-right">
+                                            <p className="text-size-1 font-black text-gray-700">{prod.price.toLocaleString()}đ</p>
+                                        </div>
+                                        <div className="w-32 text-center">
+                                            <p className={`text-size-1 font-black px-3 py-1 rounded-lg inline-block ${prod.stock < 20 ? 'bg-red-50 text-red-500 border border-red-100' : 'bg-gray-100 text-coffee-dark border border-gray-200'}`}>{prod.stock}</p>
+                                        </div>
+                                        <div className="w-32 flex justify-end gap-2">
+                                            <button onClick={() => openEdit(prod)} className="w-10 h-10 rounded-lg bg-blue-50 text-blue-500 border border-blue-100 hover:bg-blue-100 font-bold text-size-1 transition-colors"><i className="fa-solid fa-pen"></i></button>
+                                            <button onClick={() => handleDelete(prod.id)} className="w-10 h-10 rounded-lg bg-red-50 text-red-500 border border-red-100 hover:bg-red-100 font-bold text-size-1 transition-colors"><i className="fa-solid fa-trash"></i></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {isModalOpen && (
+                        <div className="fixed inset-0 bg-coffee-dark/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+                            <div className="glass-effect p-6 md:p-8 rounded-[2rem] relative max-w-md w-full shadow-2xl border border-white">
+                                <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 w-8 h-8 bg-gray-100 rounded-full text-size-1 font-black text-gray-500 hover:text-coffee-dark">&times;</button>
+                                <h2 className="text-size-2 font-black text-coffee-dark uppercase tracking-tighter mb-6">{editingProd ? 'Sửa Món' : 'Thêm Món Mới'}</h2>
+
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <div>
+                                        <label className="block text-size-0 font-bold mb-1 ml-1">Tên Món</label>
+                                        <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-size-1 font-bold outline-none focus:border-coffee-green" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-size-0 font-bold mb-1 ml-1">Giá Bán (VNĐ)</label>
+                                            <input type="number" required value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-size-1 font-bold outline-none focus:border-coffee-green" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-size-0 font-bold mb-1 ml-1">Tồn Kho</label>
+                                            <input type="number" required value={formData.stock} onChange={e => setFormData({ ...formData, stock: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-size-1 font-bold outline-none focus:border-coffee-green" />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-size-0 font-bold mb-1 ml-1">Danh Mục</label>
+                                            <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-size-1 font-bold outline-none focus:border-coffee-green bg-white">
+                                                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-size-0 font-bold mb-1 ml-1">Icon (FontAwesome)</label>
+                                            <select value={formData.icon} onChange={e => setFormData({ ...formData, icon: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 text-size-1 font-bold outline-none focus:border-coffee-green bg-white">
+                                                <option value="fa-mug-hot">Mug Hot</option>
+                                                <option value="fa-mug-saucer">Mug Saucer</option>
+                                                <option value="fa-glass-water">Glass</option>
+                                                <option value="fa-cookie">Cookie</option>
+                                                <option value="fa-cake-candles">Cake</option>
+                                                <option value="fa-leaf">Leaf/Tea</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button type="submit" className="w-full bg-coffee-green text-white font-black text-size-1 py-4 rounded-xl shadow-lg hover:bg-green-800 transition-colors uppercase tracking-widest mt-2">
+                                        Lưu Thông Tin
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // 9. Tab: Cài Đặt
+        const SettingsView = ({ globalScale, setGlobalScale, showNotify }) => {
+            const handleScaleChange = (scale) => { setGlobalScale(scale); showNotify(`Đã thay đổi mức thu phóng hệ thống!`); };
+            return (
+                <div className="p-4 md:p-6 animate-fade-in h-full overflow-y-auto no-scrollbar">
+                    <h2 className="text-size-2 font-black uppercase text-coffee-dark tracking-tighter mb-6">Cài Đặt Hệ Thống</h2>
+                    <div className="glass-effect p-6 md:p-8 rounded-[2rem] border border-white shadow-xl max-w-2xl">
+                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl mb-8">
+                            <p className="text-size-0 font-bold text-blue-800"><i className="fa-solid fa-circle-info mr-2"></i>Hệ thống sử dụng Thu Phóng Toàn Cục (Scale Root) thay vì đổi font size lẻ tẻ, giúp bảo vệ giao diện Glassmorphism không bị vỡ.</p>
+                        </div>
+                        <div className="space-y-8">
+                            <div>
+                                <h3 className="text-size-1 font-black uppercase text-coffee-dark mb-3">Tỷ lệ Thu Phóng (Scale)</h3>
+                                <div className="flex gap-4">
+                                    {[{ val: 14, label: 'Nhỏ (-15%)' }, { val: 16, label: 'Chuẩn (100%)' }, { val: 18, label: 'Lớn (+15%)' }].map(opt => (
+                                        <button key={opt.val} onClick={() => handleScaleChange(opt.val)} className={`flex-1 py-3 rounded-xl text-size-1 font-black border transition-all ${globalScale === opt.val ? 'bg-coffee-green text-white border-coffee-green shadow-md' : 'bg-white/60 text-gray-600 border-gray-200 hover:bg-white'}`}>{opt.label}</button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="border-t border-gray-200 pt-6">
+                                <h3 className="text-size-1 font-black uppercase text-coffee-dark mb-4">Thông báo</h3>
+                                <label className="flex items-center justify-between bg-white/60 p-4 rounded-xl border border-gray-200 cursor-pointer">
+                                    <div>
+                                        <p className="text-size-1 font-black text-coffee-dark">Âm thanh thông báo</p>
+                                        <p className="text-size-0 text-gray-500 font-medium">Phát âm thanh khi có đơn hàng / đặt bàn mới</p>
+                                    </div>
+                                    <input type="checkbox" className="w-6 h-6 accent-coffee-green" defaultChecked />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MAIN APP ---
+        const App = () => {
+            const [admin, setAdmin] = useState(null);
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [notification, setNotification] = useState('');
+
+            // TẬP TRUNG TOÀN BỘ STATE TẠI APP (Fix Lỗi Dữ Liệu Tĩnh)
+            const [orders, setOrders] = useState(INITIAL_ORDERS);
+            const [products, setProducts] = useState(INITIAL_PRODUCTS);
+            const [customers, setCustomers] = useState(INITIAL_CUSTOMERS);
+
+            const [globalScale, setGlobalScale] = useState(16);
+
+            useEffect(() => {
+                document.documentElement.style.fontSize = `${globalScale}px`;
+            }, [globalScale]);
+
+            const showNotify = (msg) => { setNotification(msg); setTimeout(() => setNotification(''), 3000); };
+
+            if (!admin) {
+                return (
+                    <div className="relative w-full h-screen overflow-hidden">
+                        <div className="bg-grid-pattern fixed inset-0 -z-20"></div>
+                        <AuthModal onLogin={setAdmin} />
+                    </div>
+                );
+            }
+
+            return (
+                <div className="relative w-full h-screen overflow-hidden flex flex-col md:p-3 bg-coffee-bg transition-all duration-300">
+                    <div className="bg-grid-pattern fixed inset-0 -z-20"></div>
+
+                    <div className="flex-1 w-full max-w-[1400px] mx-auto bg-white/30 backdrop-blur-2xl md:rounded-[2.5rem] border border-white shadow-2xl flex flex-col md:flex-row relative overflow-hidden transition-all duration-300">
+                        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={() => setAdmin(null)} />
+
+                        <div className="flex-1 relative z-10 w-full h-full overflow-hidden flex flex-col bg-white/40">
+                            {notification && (
+                                <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-50 bg-coffee-dark/90 backdrop-blur-md text-white text-size-1 font-bold py-3 px-6 rounded-full border border-coffee-yellow animate-bounce shadow-xl text-center w-max">
+                                    {notification}
+                                </div>
+                            )}
+
+                            <div className="flex-1 overflow-hidden relative">
+                                {activeTab === 'dashboard' && <DashboardView orders={orders} />}
+                                {activeTab === 'orders' && <OrdersView orders={orders} setOrders={setOrders} showNotify={showNotify} />}
+                                {activeTab === 'tables' && <TablesView />}
+                                {activeTab === 'products' && <ProductsView products={products} setProducts={setProducts} showNotify={showNotify} />}
+                                {activeTab === 'users' && <UsersView customers={customers} setCustomers={setCustomers} showNotify={showNotify} />}
+                                {activeTab === 'reports' && <ReportsView />}
+                                {activeTab === 'settings' && <SettingsView globalScale={globalScale} setGlobalScale={setGlobalScale} showNotify={showNotify} />}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,40 @@
+<style>
+        /* Pattern nền caro */
+        .bg-grid-pattern {
+            background-color: #f7f4e9;
+            background-image: 
+                linear-gradient(#e8e5d6 1px, transparent 1px),
+                linear-gradient(90deg, #e8e5d6 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        /* Hiệu ứng kính mờ (Glassmorphism) */
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+        }
+
+        /* Ràng buộc NGHIÊM NGẶT 2 kích cỡ chữ */
+        .text-size-1 { font-size: 1rem; line-height: 1.5rem; } /* Chữ thường */
+        .text-size-2 { font-size: 2.25rem; line-height: 2.5rem; } /* Tiêu đề */
+
+        /* Băng keo trang trí */
+        .tape-deco {
+            position: absolute;
+            background-color: #dfb252;
+            color: #307848;
+            padding: 4px 40px;
+            text-transform: uppercase;
+            font-weight: 900;
+            white-space: nowrap;
+            z-index: 10;
+        }
+        .tape-top-left { top: 20px; left: -40px; transform: rotate(-35deg); }
+        .tape-bottom-right { bottom: 20px; right: -40px; transform: rotate(-35deg); }
+
+        /* Ẩn thanh cuộn */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>

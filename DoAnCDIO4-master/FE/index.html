@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Coffee Journey - Hệ thống quán cà phê thông minh</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'coffee-bg': '#f7f4e9',
+                        'coffee-grid': '#e8e5d6',
+                        'coffee-green': '#307848',
+                        'coffee-yellow': '#dfb252',
+                        'coffee-dark': '#3b2c25',
+                        'coffee-cup': '#f3e1a9'
+                    },
+                    fontFamily: {
+                        'sans': ['ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+</head>
+<body class="font-sans text-coffee-dark no-scrollbar bg-coffee-bg">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- MOCK DATA ---
+        const DUMMY_USER = { NguoiDungID: 1, TenDangNhap: 'khachhang', MatKhau: '123', HoTen: 'Nguyễn Văn Khách', HangThanhVienID: 2, TenHang: 'Gold', TongDiem: 1250, GiamGia: 5, SoDienThoai: '0987654321', DiaChi: '123 Đường Cà Phê, Quận 1' };
+        
+        const CATEGORIES = [{ id: 1, name: 'Cà Phê' }, { id: 2, name: 'Trà' }, { id: 3, name: 'Bánh' }];
+        
+        const MOCK_PRODUCTS = [
+            { SanPhamID: 1, DanhMucID: 1, TenSanPham: 'CÀ PHÊ ĐEN TRUYỀN THỐNG', MoTa: 'Hương vị nguyên bản.', Gia: 25000, icon: 'fa-mug-hot' },
+            { SanPhamID: 2, DanhMucID: 1, TenSanPham: 'BẠC XỈU ĐÁ', MoTa: 'Sự kết hợp hoàn hảo.', Gia: 30000, icon: 'fa-mug-saucer' },
+            { SanPhamID: 5, DanhMucID: 1, TenSanPham: 'ESPRESSO Ý', MoTa: 'Đậm đà, bừng tỉnh.', Gia: 35000, icon: 'fa-mug-hot' },
+            { SanPhamID: 3, DanhMucID: 2, TenSanPham: 'TRÀ ĐÀO CAM SẢ', MoTa: 'Thanh mát giải nhiệt.', Gia: 40000, icon: 'fa-glass-water' },
+            { SanPhamID: 6, DanhMucID: 2, TenSanPham: 'TRÀ VẢI THIỀU TỨ XUYÊN', MoTa: 'Vị ngọt thanh dịu nhẹ.', Gia: 45000, icon: 'fa-leaf' },
+            { SanPhamID: 4, DanhMucID: 3, TenSanPham: 'BÁNH CROISSANT', MoTa: 'Bánh sừng bò nướng bơ.', Gia: 35000, icon: 'fa-cookie' },
+            { SanPhamID: 7, DanhMucID: 3, TenSanPham: 'TIRAMISU', MoTa: 'Béo ngậy hương cà phê.', Gia: 45000, icon: 'fa-cake-candles' },
+        ];
+        
+        const SIZES = [{ id: 'S', name: 'Size S', price: 0 }, { id: 'M', name: 'Size M', price: 5000 }, { id: 'L', name: 'Size L', price: 10000 }];
+        const TOPPINGS = [{ id: 1, name: 'Trân châu đen', price: 5000 }, { id: 2, name: 'Kem Macchiato', price: 10000 }];
+        const VOUCHERS = [{ code: 'GIAM10K', discount: 10000, type: 'TienMat' }];
+
+        // --- COMPONENTS ---
+
+        // 1. Modal Đăng Nhập
+        const AuthModal = ({ onClose, onLogin }) => {
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+
+            const handleLogin = (e) => {
+                e.preventDefault();
+                if (username === DUMMY_USER.TenDangNhap && password === DUMMY_USER.MatKhau) onLogin(DUMMY_USER);
+                else setError('Sai tên đăng nhập hoặc mật khẩu!');
+            };
+
+            return (
+                <div className="fixed inset-0 bg-coffee-dark/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+                    <div className="glass-effect p-8 md:p-10 rounded-[2.5rem] relative max-w-md w-full shadow-2xl">
+                        <button onClick={onClose} className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full text-size-1 font-black text-gray-500 hover:text-coffee-dark">&times;</button>
+                        <h2 className="text-size-2 font-black text-coffee-green mb-6 text-center uppercase tracking-tighter">Đăng Nhập</h2>
+                        
+                        {error && <p className="text-red-500 mb-4 text-size-1 font-bold text-center">{error}</p>}
+                        <form onSubmit={handleLogin} className="space-y-4">
+                            <div>
+                                <label className="block text-size-1 font-bold mb-1 ml-2 text-gray-700">Tên đăng nhập</label>
+                                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full p-4 rounded-2xl bg-white/80 border border-white text-size-1 font-bold outline-none focus:ring-2 focus:ring-coffee-green" required />
+                            </div>
+                            <div>
+                                <label className="block text-size-1 font-bold mb-1 ml-2 text-gray-700">Mật khẩu</label>
+                                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-4 rounded-2xl bg-white/80 border border-white text-size-1 font-bold outline-none focus:ring-2 focus:ring-coffee-green" required />
+                            </div>
+                            <button type="submit" className="w-full bg-coffee-green text-white font-black text-size-1 py-4 rounded-full shadow-lg hover:-translate-y-1 transition-transform uppercase tracking-widest mt-4">Vào Quán</button>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // 2. Modal Đánh Giá (Review)
+        const ReviewModal = ({ order, item, onClose, onSubmit }) => {
+            const [rating, setRating] = useState(5);
+            const [hoverRating, setHoverRating] = useState(0);
+            const [comment, setComment] = useState('');
+
+            if (!item) return null;
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                onSubmit(order.id, item.SanPhamID, { rating, comment });
+            };
+
+            return (
+                <div className="fixed inset-0 bg-coffee-dark/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+                    <div className="glass-effect p-8 rounded-[2.5rem] relative max-w-md w-full shadow-2xl">
+                        <button onClick={onClose} className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full text-size-1 font-black text-gray-500 hover:text-coffee-dark">&times;</button>
+                        <h2 className="text-size-2 font-black text-coffee-dark uppercase tracking-tighter mb-2 text-center">Đánh Giá</h2>
+                        <p className="text-size-1 font-bold text-gray-500 text-center mb-8">
+                            Món <span className="text-coffee-green font-black">{item.TenSanPham}</span> (Đơn {order.id})
+                        </p>
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="flex justify-center gap-3">
+                                {[1, 2, 3, 4, 5].map(star => (
+                                    <button key={star} type="button" onMouseEnter={() => setHoverRating(star)} onMouseLeave={() => setHoverRating(0)} onClick={() => setRating(star)} className="text-size-2 hover:scale-110 transition-transform focus:outline-none">
+                                        <i className={`fa-star ${star <= (hoverRating || rating) ? 'fa-solid text-coffee-yellow drop-shadow-md' : 'fa-regular text-gray-300'}`}></i>
+                                    </button>
+                                ))}
+                            </div>
+                            <div>
+                                <textarea rows="4" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Cảm nhận của bạn..." className="w-full p-4 rounded-2xl bg-white/80 border border-white text-size-1 font-medium text-gray-700 outline-none focus:ring-2 focus:ring-coffee-green resize-none"></textarea>
+                            </div>
+                            <button type="submit" className="w-full bg-coffee-green text-white font-black text-size-1 py-4 rounded-full shadow-lg hover:-translate-y-1 transition-transform uppercase tracking-widest">Gửi Đánh Giá</button>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // 3. Modal Chọn Sản Phẩm (Size, Topping)
+        const ProductModal = ({ product, onClose, onAddToCart }) => {
+            const [size, setSize] = useState(SIZES[0]);
+            const [selectedToppings, setSelectedToppings] = useState([]);
+            const [qty, setQty] = useState(1);
+
+            if (!product) return null;
+
+            const isCake = product.DanhMucID === 3;
+            const toggleTopping = (t) => {
+                if (selectedToppings.find(item => item.id === t.id)) setSelectedToppings(selectedToppings.filter(item => item.id !== t.id));
+                else setSelectedToppings([...selectedToppings, t]);
+            };
+
+            const toppingTotal = selectedToppings.reduce((sum, t) => sum + t.price, 0);
+            const total = ((product.Gia + size.price + toppingTotal) * qty);
+
+            const handleAdd = () => {
+                onAddToCart({
+                    ...product,
+                    cartId: Date.now(), 
+                    selectedSize: isCake ? null : size,
+                    selectedToppings: selectedToppings,
+                    quantity: qty,
+                    finalPrice: product.Gia + (isCake ? 0 : size.price) + toppingTotal
+                });
+                onClose();
+            };
+
+            return (
+                <div className="fixed inset-0 bg-coffee-dark/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+                    <div className="glass-effect p-8 rounded-[2.5rem] relative max-w-lg w-full max-h-[90vh] overflow-y-auto no-scrollbar shadow-2xl border border-white">
+                        <button onClick={onClose} className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full text-size-1 font-black text-gray-500 hover:text-coffee-dark">&times;</button>
+                        
+                        <div className="flex items-center gap-4 mb-6 border-b-2 border-white/50 pb-6">
+                            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-size-2 text-coffee-green shadow-sm shrink-0">
+                                <i className={`fa-solid ${product.icon}`}></i>
+                            </div>
+                            <div>
+                                <h2 className="text-size-1 font-black text-coffee-green uppercase">{product.TenSanPham}</h2>
+                                <p className="text-size-1 text-gray-600 font-bold">{product.Gia.toLocaleString('vi-VN')} đ</p>
+                            </div>
+                        </div>
+
+                        {!isCake && (
+                            <>
+                                <div className="mb-6">
+                                    <p className="text-size-1 font-black uppercase mb-3 text-gray-700 ml-2">Chọn Size</p>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {SIZES.map(s => (
+                                            <button key={s.id} onClick={() => setSize(s)} className={`p-3 rounded-2xl text-size-1 font-bold border transition-all ${size.id === s.id ? 'bg-coffee-green text-white border-coffee-green shadow-md' : 'bg-white/70 border-white hover:bg-white text-gray-600'}`}>
+                                                {s.name} <br/><span className="opacity-80">(+{s.price.toLocaleString()}đ)</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="mb-6">
+                                    <p className="text-size-1 font-black uppercase mb-3 text-gray-700 ml-2">Thêm Topping</p>
+                                    <div className="space-y-2">
+                                        {TOPPINGS.map(t => (
+                                            <label key={t.id} className="flex items-center gap-3 p-4 rounded-2xl bg-white/70 border border-white cursor-pointer hover:bg-white transition-all shadow-sm">
+                                                <input type="checkbox" className="w-6 h-6 accent-coffee-green" checked={!!selectedToppings.find(item => item.id === t.id)} onChange={() => toggleTopping(t)} />
+                                                <span className="text-size-1 font-bold flex-1 text-gray-700">{t.name}</span>
+                                                <span className="text-size-1 font-black text-coffee-green">+{t.price.toLocaleString()}đ</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        <div className="flex items-center justify-between mb-8 bg-white/70 p-4 rounded-2xl border border-white">
+                            <p className="text-size-1 font-black uppercase text-gray-700 ml-2">Số lượng</p>
+                            <div className="flex items-center bg-gray-100 rounded-full p-1 shadow-inner">
+                                <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-10 h-10 rounded-full bg-white text-size-1 font-black hover:text-coffee-green shadow-sm">-</button>
+                                <span className="w-12 text-center text-size-1 font-black">{qty}</span>
+                                <button onClick={() => setQty(qty + 1)} className="w-10 h-10 rounded-full bg-white text-size-1 font-black hover:text-coffee-green shadow-sm">+</button>
+                            </div>
+                        </div>
+
+                        <button onClick={handleAdd} className="w-full py-4 bg-coffee-yellow text-coffee-dark font-black text-size-1 rounded-full shadow-lg hover:-translate-y-1 transition-transform uppercase tracking-widest">
+                            Thêm vào giỏ - {total.toLocaleString('vi-VN')} đ
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // 4. Panel Giỏ Hàng (2 cột)
+        const CartPanel = ({ isOpen, onClose, cart, removeFromCart, checkout, user }) => {
+            const [orderType, setOrderType] = useState('Tại Quán');
+            const [voucher, setVoucher] = useState('');
+            const [discount, setDiscount] = useState(0);
+            
+            const [phone, setPhone] = useState('');
+            const [address, setAddress] = useState('');
+
+            useEffect(() => {
+                if (user) {
+                    setPhone(user.SoDienThoai || '');
+                    setAddress(user.DiaChi || '');
+                }
+            }, [user, isOpen]);
+
+            if (!isOpen) return null;
+
+            const subTotal = cart.reduce((sum, item) => sum + (item.finalPrice * item.quantity), 0);
+            const userDiscount = user ? (subTotal * user.GiamGia / 100) : 0;
+            const finalTotal = Math.max(0, subTotal - userDiscount - discount);
+
+            const handleApplyVoucher = () => {
+                const found = VOUCHERS.find(v => v.code === voucher.toUpperCase());
+                if (found) setDiscount(found.discount); else setDiscount(0);
+            };
+            
+            const isCheckoutDisabled = cart.length === 0 || (orderType === 'Giao Hàng' && (!phone.trim() || !address.trim()));
+
+            return (
+                <div className="fixed inset-0 z-[55] flex items-center justify-center p-2 sm:p-6">
+                    <div className="absolute inset-0 bg-coffee-dark/60 backdrop-blur-md" onClick={onClose}></div>
+                    
+                    <div className="relative w-full max-w-5xl h-[95vh] md:h-auto md:max-h-[85vh] glass-effect rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-white">
+                        <button onClick={onClose} className="absolute top-4 right-4 md:left-6 w-10 h-10 flex items-center justify-center bg-gray-100/80 backdrop-blur-sm rounded-full text-size-1 font-black text-gray-500 hover:text-coffee-dark z-20">&times;</button>
+
+                        {/* Cột trái */}
+                        <div className="flex-1 flex flex-col min-h-0 bg-white/40 border-r border-white/50">
+                            <div className="p-6 pt-16 md:pt-6 md:pl-20 shrink-0">
+                                <h2 className="text-size-2 font-black text-coffee-dark uppercase tracking-tighter mb-4">Giỏ Hàng</h2>
+                                
+                                <div className="flex gap-2 bg-white/60 p-2 rounded-full shadow-sm border border-white mb-2">
+                                    {['Tại Quán', 'Mang Đi', 'Giao Hàng'].map(type => (
+                                        <button key={type} onClick={() => setOrderType(type)} className={`flex-1 py-2 text-size-1 font-bold rounded-full transition-all ${orderType === type ? 'bg-coffee-green text-white shadow-md' : 'text-gray-600 hover:bg-white'}`}>{type}</button>
+                                    ))}
+                                </div>
+                                
+                                {/* Form Giao Hàng luôn hiện nếu chọn */}
+                                {orderType === 'Giao Hàng' && (
+                                    <div className="mt-2 p-3 bg-white/80 rounded-2xl border border-white shadow-sm space-y-2">
+                                        <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100 focus-within:ring-2 focus-within:ring-coffee-green">
+                                            <i className="fa-solid fa-phone text-gray-400"></i>
+                                            <input type="text" placeholder="SĐT người nhận..." value={phone} onChange={e=>setPhone(e.target.value)} className="w-full bg-transparent border-none text-size-1 font-medium outline-none" />
+                                        </div>
+                                        <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100 focus-within:ring-2 focus-within:ring-coffee-green">
+                                            <i className="fa-solid fa-location-dot text-gray-400"></i>
+                                            <input type="text" placeholder="Địa chỉ giao hàng..." value={address} onChange={e=>setAddress(e.target.value)} className="w-full bg-transparent border-none text-size-1 font-medium outline-none" />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto no-scrollbar p-6 pt-0 md:pl-20">
+                                {cart.length === 0 ? (
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-50">
+                                        <i className="fa-solid fa-basket-shopping text-size-2 mb-4"></i>
+                                        <p className="text-size-1 font-bold">Chưa có món nào.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {cart.map((item) => (
+                                            <div key={item.cartId} className="flex bg-white/80 p-4 rounded-2xl shadow-sm border border-white items-center gap-4">
+                                                <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-coffee-green shrink-0">
+                                                    <i className={`fa-solid ${item.icon} text-size-1`}></i>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-size-1 font-black text-coffee-dark truncate">{item.TenSanPham}</p>
+                                                    <p className="text-size-1 font-medium text-gray-500">
+                                                        {item.selectedSize ? `Size ${item.selectedSize.id}` : ''} 
+                                                        {item.selectedToppings?.length > 0 ? ` + ${item.selectedToppings.map(t=>t.name).join(', ')}` : ''}
+                                                    </p>
+                                                    <p className="text-size-1 font-bold text-coffee-green">SL: {item.quantity} x {item.finalPrice.toLocaleString()}đ</p>
+                                                </div>
+                                                <button onClick={() => removeFromCart(item.cartId)} className="w-10 h-10 rounded-full bg-red-50 text-red-500 font-bold text-size-1 hover:bg-red-100 shrink-0"><i className="fa-solid fa-trash"></i></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Cột phải */}
+                        <div className="w-full md:w-[40%] bg-white p-6 md:p-8 flex flex-col shrink-0">
+                            <h3 className="text-size-1 font-black uppercase text-gray-400 tracking-widest mb-6">Thanh Toán</h3>
+                            
+                            <div className="flex gap-2 mb-6">
+                                <input type="text" placeholder="Mã Voucher..." value={voucher} onChange={e=>setVoucher(e.target.value)} className="flex-1 p-4 rounded-2xl bg-gray-50 border border-gray-100 text-size-1 font-bold uppercase outline-none focus:ring-2 focus:ring-coffee-green"/>
+                                <button onClick={handleApplyVoucher} className="bg-coffee-dark text-white px-6 rounded-2xl font-bold text-size-1 uppercase hover:bg-black transition-colors">Áp dụng</button>
+                            </div>
+
+                            <div className="space-y-4 mb-6 flex-1">
+                                <div className="flex justify-between text-size-1 font-bold text-gray-600"><span>Tạm tính:</span><span>{subTotal.toLocaleString()}đ</span></div>
+                                {user && <div className="flex justify-between text-size-1 font-bold text-coffee-green"><span>Hạng {user.TenHang} (-{user.GiamGia}%):</span><span>-{userDiscount.toLocaleString()}đ</span></div>}
+                                {discount > 0 && <div className="flex justify-between text-size-1 font-bold text-coffee-green"><span>Voucher:</span><span>-{discount.toLocaleString()}đ</span></div>}
+                            </div>
+                            
+                            <div className="pt-4 border-t-2 border-gray-100 border-dashed shrink-0">
+                                <div className="flex justify-between items-end mb-4">
+                                    <span className="text-size-1 font-black text-gray-400 uppercase tracking-widest">Tổng Cộng</span>
+                                    <span className="text-coffee-green text-size-2 font-black leading-none">{finalTotal.toLocaleString()}đ</span>
+                                </div>
+                                <button 
+                                    onClick={() => checkout(finalTotal, orderType, { phone, address })}
+                                    disabled={isCheckoutDisabled}
+                                    className={`w-full py-4 text-size-1 font-black uppercase tracking-widest rounded-full shadow-xl transition-all ${isCheckoutDisabled ? 'bg-gray-100 text-gray-300 shadow-none' : 'bg-coffee-green text-white hover:bg-green-800 hover:-translate-y-1'}`}
+                                >
+                                    {orderType === 'Giao Hàng' && (!phone || !address) ? 'Nhập Đủ TT Giao' : (user ? 'Xác Nhận Đặt' : 'Đăng Nhập Để Đặt')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- CÁC TRANG CHÍNH (VIEWS) ---
+
+        // View 1: Trang chủ
+        const HomeView = ({ onNavigate }) => (
+            <main className="p-4 md:p-16 relative flex flex-col items-center text-center animate-fade-in w-full max-w-6xl mx-auto">
+                <div className="absolute top-10 left-[10%] text-coffee-yellow text-size-2 opacity-80">✨</div>
+                <div className="absolute bottom-20 right-[10%] text-coffee-yellow text-size-2 opacity-80">✨</div>
+
+                <div className="glass-effect p-8 md:p-12 rounded-[3rem] shadow-2xl mt-8 w-full">
+                    <h1 className="text-size-2 md:text-[4rem] font-black uppercase text-coffee-green tracking-tighter mb-6 leading-none">A JOURNEY<br/>THROUGH HISTORY</h1>
+                    <p className="text-size-1 font-medium text-gray-600 max-w-3xl mx-auto leading-relaxed mb-8 text-justify md:text-center">
+                        Khởii nguồn của cà phê bắt đầu từ nhiều thế kỷ trước tại cao nguyên Ethiopia. Kể từ đó, cà phê đã vượt qua các đại dương và đế chế, trở thành thức uống được yêu thích trên toàn thế giới. Quán cà phê trở thành trung tâm giao lưu văn hóa, ảnh hưởng đến những cuộc trò chuyện, chính trị và nghệ thuật.
+                    </p>
+                    <div className="flex gap-4 flex-wrap justify-center">
+                        <button onClick={() => onNavigate('menu')} className="bg-coffee-yellow text-coffee-dark font-black text-size-1 py-4 px-10 rounded-full shadow-lg hover:-translate-y-1 transition-transform uppercase tracking-widest">Xem Thực Đơn</button>
+                        <button onClick={() => onNavigate('booking')} className="bg-white text-coffee-green border-2 border-coffee-green font-black text-size-1 py-4 px-10 rounded-full shadow-lg hover:-translate-y-1 transition-transform uppercase tracking-widest">Đặt Bàn Ngay</button>
+                    </div>
+                </div>
+
+                <div className="mt-20 w-full text-left">
+                    <h2 className="text-size-2 font-black text-coffee-dark uppercase mb-10 text-center tracking-tighter">Không Gian Của Chúng Tôi</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {[{t: 'Wifi Tốc Độ Cao', i: 'fa-wifi'}, {t: 'Sân Vườn Xanh', i: 'fa-tree'}, {t: 'Góc Đọc Sách', i: 'fa-book-open'}, {t: 'Live Acoustic', i: 'fa-guitar'}].map((f, idx) => (
+                            <div key={idx} className="glass-effect p-6 rounded-[2rem] text-center hover:-translate-y-2 transition-transform shadow-lg group">
+                                <div className="w-16 h-16 bg-white rounded-full mx-auto mb-4 flex items-center justify-center text-size-2 text-coffee-green group-hover:bg-coffee-green group-hover:text-white transition-colors shadow-sm">
+                                    <i className={`fa-solid ${f.i}`}></i>
+                                </div>
+                                <h3 className="text-size-1 font-black text-coffee-dark uppercase">{f.t}</h3>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </main>
+        );
+
+        // View 2: Thực Đơn
+        const MenuView = ({ onProductSelect }) => {
+            const [cat, setCat] = useState(1);
+            return (
+                <section className="p-4 md:p-16 max-w-6xl mx-auto">
+                    <h2 className="text-size-2 font-black uppercase text-coffee-dark text-center mb-8 tracking-tighter">Thực Đơn</h2>
+                    <div className="flex justify-center gap-3 mb-10 flex-wrap">
+                        {CATEGORIES.map(c => (
+                            <button key={c.id} onClick={() => setCat(c.id)} className={`px-8 py-3 rounded-full text-size-1 font-black uppercase transition-all shadow-sm ${cat === c.id ? 'bg-coffee-green text-white shadow-md' : 'glass-effect text-coffee-dark hover:bg-white'}`}>{c.name}</button>
+                        ))}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {MOCK_PRODUCTS.filter(p => p.DanhMucID === cat).map((product) => (
+                            <div key={product.SanPhamID} className="glass-effect p-6 rounded-[2rem] flex flex-col items-center text-center gap-4 group cursor-pointer hover:shadow-2xl hover:-translate-y-2 transition-all" onClick={() => onProductSelect(product)}>
+                                <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-size-2 text-coffee-green shadow-inner group-hover:scale-110 transition-transform">
+                                    <i className={`fa-solid ${product.icon}`}></i>
+                                </div>
+                                <div className="flex-1 w-full">
+                                    <h3 className="text-size-1 font-black text-coffee-green uppercase mb-2 line-clamp-1">{product.TenSanPham}</h3>
+                                    <p className="text-size-1 text-gray-600 mb-4 line-clamp-2 h-[3rem] font-medium">{product.MoTa}</p>
+                                    <div className="text-size-1 font-black text-coffee-dark bg-white/50 py-2 rounded-full border border-white/50">{product.Gia.toLocaleString('vi-VN')} đ</div>
+                                </div>
+                                <button className="w-full bg-coffee-yellow text-coffee-dark py-3 rounded-full font-black text-size-1 opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-6 w-[calc(100%-3rem)] shadow-lg uppercase tracking-widest"><i className="fa-solid fa-plus mr-2"></i>Chọn Món</button>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            );
+        };
+
+        // View 3: Đặt Bàn (Cập nhật Logic Hủy chọn bàn)
+        const BookingView = ({ user, showNotify, onRequireLogin }) => {
+            const [selectedTable, setSelectedTable] = useState(null);
+            
+            const TABLES_MAP = [
+                { id: 1, name: 'Bàn 1', seats: 2, type: 'round', top: '15%', left: '35%', locked: false },
+                { id: 2, name: 'Bàn 2', seats: 2, type: 'round', top: '15%', left: '55%', locked: true },
+                { id: 3, name: 'Bàn 3', seats: 4, type: 'rect', top: '50%', left: '25%', locked: false },
+                { id: 4, name: 'Bàn 4', seats: 4, type: 'rect', top: '50%', left: '50%', locked: true },
+                { id: 5, name: 'VIP 1', seats: 6, type: 'rect', top: '25%', left: '80%', locked: false },
+                { id: 6, name: 'Bàn 5', seats: 4, type: 'round', top: '80%', left: '30%', locked: false },
+                { id: 7, name: 'Bàn 6', seats: 4, type: 'rect', top: '80%', left: '60%', locked: false },
+                { id: 8, name: 'Bàn 7', seats: 4, type: 'rect', top: '80%', left: '85%', locked: false }
+            ];
+
+            const renderChairs = (seats, type) => {
+                let chairs = [];
+                for(let i=0; i<seats; i++) {
+                    let posClass = '';
+                    if (type === 'round') {
+                        const angle = (i / seats) * 360;
+                        posClass = `absolute w-3 h-3 bg-gray-300 rounded-full border border-gray-400`;
+                        chairs.push(<div key={i} className={posClass} style={{ transform: `rotate(${angle}deg) translateY(-140%)`, top: '50%', left: '50%', marginTop: '-0.375rem', marginLeft: '-0.375rem' }}></div>);
+                    } else { 
+                        const isTop = i < seats/2;
+                        const lr = seats > 4 ? (i%(seats/2) * 35) + 15 : (i%2 * 50) + 25; 
+                        posClass = `absolute w-4 h-3 bg-gray-300 rounded-full border border-gray-400 ${isTop ? '-top-2' : '-bottom-2'}`;
+                        chairs.push(<div key={i} className={posClass} style={{ left: `${lr}%`, transform: 'translateX(-50%)' }}></div>);
+                    }
+                }
+                return chairs;
+            };
+
+            const handleBook = (e) => {
+                e.preventDefault();
+                if (!user) return onRequireLogin();
+                if (!selectedTable) return;
+                showNotify(`Đã gửi yêu cầu đặt ${selectedTable.name} thành công! Quán sẽ liên hệ sớm nhất.`);
+                setSelectedTable(null);
+            };
+
+            return (
+                <section className="p-4 md:p-8 max-w-7xl mx-auto">
+                    <h2 className="text-size-2 font-black uppercase text-coffee-dark text-center mb-8 tracking-tighter">Đặt Bàn Giữ Chỗ</h2>
+                    
+                    <div className="flex flex-col lg:flex-row gap-6 items-start">
+                        {/* Sơ đồ bản đồ */}
+                        <div className="w-full lg:w-[65%] glass-effect p-4 md:p-6 rounded-[2.5rem] shadow-xl">
+                            <div className="flex justify-between items-center mb-4 px-2">
+                                <h3 className="text-size-1 font-black uppercase tracking-widest text-coffee-dark">Sơ Đồ Không Gian</h3>
+                                <div className="flex gap-4">
+                                    <span className="flex items-center gap-2 text-size-1 font-bold"><div className="w-4 h-4 rounded-full border-2 border-gray-300"></div> Trống</span>
+                                    <span className="flex items-center gap-2 text-size-1 font-bold"><div className="w-4 h-4 rounded-full bg-coffee-green border-2 border-coffee-green"></div> Đang chọn</span>
+                                </div>
+                            </div>
+
+                            <div className="relative w-full aspect-[4/3] md:aspect-[16/9] bg-white/50 rounded-[2rem] border-2 border-dashed border-gray-300 overflow-hidden shadow-inner">
+                                <div className="absolute inset-0" style={{backgroundImage: 'linear-gradient(#e5e7eb 1px, transparent 1px), linear-gradient(90deg, #e5e7eb 1px, transparent 1px)', backgroundSize: '20px 20px', opacity: 0.5}}></div>
+                                
+                                <div className="absolute top-0 left-0 w-[25%] h-[35%] bg-coffee-dark rounded-br-[2rem] flex flex-col items-center justify-center text-coffee-cup shadow-lg z-10 border-r-4 border-b-4 border-coffee-dark/80">
+                                    <i className="fa-solid fa-mug-hot text-size-2 mb-1"></i>
+                                    <span className="text-size-1 font-black uppercase">Quầy Bar</span>
+                                </div>
+
+                                <div className="absolute top-0 right-0 w-[35%] h-[45%] bg-yellow-100/50 rounded-bl-[2rem] border-l-2 border-b-2 border-dashed border-coffee-yellow flex items-start justify-end p-4">
+                                    <span className="text-size-1 font-black text-coffee-yellow uppercase opacity-80"><i className="fa-solid fa-crown mr-1"></i> VIP</span>
+                                </div>
+
+                                <div className="absolute bottom-0 right-0 left-[20%] h-[35%] bg-green-100/50 rounded-tl-[2rem] border-t-2 border-l-2 border-dashed border-coffee-green flex items-end justify-end p-4">
+                                    <span className="text-size-1 font-black text-coffee-green uppercase opacity-80"><i className="fa-solid fa-tree mr-1"></i> Sân Vườn</span>
+                                </div>
+
+                                {TABLES_MAP.map(t => {
+                                    const isSelected = selectedTable?.id === t.id;
+                                    const baseClass = t.type === 'round' ? 'rounded-full' : 'rounded-xl';
+                                    const sizeClass = t.type === 'round' ? 'w-10 h-10 md:w-14 md:h-14' : (t.seats > 4 ? 'w-16 h-10 md:w-24 md:h-14' : 'w-12 h-10 md:w-16 md:h-14');
+                                    
+                                    let stateClass = 'bg-white border-gray-300 text-gray-700 hover:border-coffee-green hover:shadow-md cursor-pointer';
+                                    if (t.locked) stateClass = 'bg-gray-200 border-gray-300 text-gray-400 opacity-60 cursor-not-allowed';
+                                    if (isSelected) stateClass = 'bg-coffee-green border-coffee-green text-white shadow-lg scale-110 z-20';
+
+                                    return (
+                                        <div key={t.id} 
+                                            className={`absolute flex items-center justify-center border-2 transition-all duration-300 ${baseClass} ${sizeClass} ${stateClass}`}
+                                            style={{ top: t.top, left: t.left, transform: 'translate(-50%, -50%)' }}
+                                            // LOGIC HỦY CHỌN: Nếu click vào bàn đang chọn thì gán null, ngược lại gán bàn đó
+                                            onClick={() => !t.locked && setSelectedTable(prev => prev?.id === t.id ? null : t)}
+                                        >
+                                            <span className="text-[0.6rem] md:text-[0.8rem] font-black z-10 leading-none text-center">
+                                                {t.locked ? <i className="fa-solid fa-lock"></i> : t.name}
+                                            </span>
+                                            {renderChairs(t.seats, t.type)}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Form chi tiết */}
+                        <div className="w-full lg:w-[35%] glass-effect p-6 md:p-8 rounded-[2.5rem] shadow-xl shrink-0">
+                            <h3 className="text-size-1 font-black uppercase text-coffee-dark tracking-widest mb-6">Chi tiết đặt bàn</h3>
+                            {!selectedTable && <p className="text-red-500 text-size-1 font-bold mb-4 animate-pulse"><i className="fa-solid fa-hand-pointer mr-2"></i>Vui lòng chọn bàn trên sơ đồ!</p>}
+                            <form onSubmit={handleBook} className="space-y-4">
+                                <div className="bg-white/80 p-4 rounded-2xl border border-white">
+                                    <p className="text-size-1 font-bold text-gray-500 mb-1">Bàn đã chọn</p>
+                                    <p className="text-size-1 font-black text-coffee-green">{selectedTable ? `${selectedTable.name} (${selectedTable.seats} ghế)` : '---'}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-size-1 font-bold mb-1 ml-2 text-gray-700">Ngày đến</label>
+                                    <input type="date" required className="w-full p-4 rounded-2xl bg-white/80 border border-white text-size-1 font-bold outline-none focus:ring-2 focus:ring-coffee-green" disabled={!selectedTable}/>
+                                </div>
+                                <div>
+                                    <label className="block text-size-1 font-bold mb-1 ml-2 text-gray-700">Giờ đến</label>
+                                    <input type="time" required className="w-full p-4 rounded-2xl bg-white/80 border border-white text-size-1 font-bold outline-none focus:ring-2 focus:ring-coffee-green" disabled={!selectedTable}/>
+                                </div>
+                                <div>
+                                    <label className="block text-size-1 font-bold mb-1 ml-2 text-gray-700">Ghi chú</label>
+                                    <textarea rows="2" className="w-full p-4 rounded-2xl bg-white/80 border border-white text-size-1 font-medium outline-none focus:ring-2 focus:ring-coffee-green resize-none" disabled={!selectedTable}></textarea>
+                                </div>
+                                <button type="submit" disabled={!selectedTable} className={`w-full font-black text-size-1 py-4 uppercase tracking-widest rounded-full shadow-xl transition-all mt-4 ${selectedTable ? 'bg-coffee-green text-white hover:bg-green-800 hover:-translate-y-1' : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'}`}>
+                                    Xác Nhận Đặt Bàn
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        // View 4: Lịch sử & Đánh giá (TÁCH RIÊNG THÀNH TAB MỚI)
+        const HistoryView = ({ user, orders, reviews, onOpenReview }) => {
+            if (!user) return <div className="p-16 text-center"><h2 className="text-size-2 font-black uppercase text-gray-500">Vui lòng đăng nhập để xem lịch sử</h2></div>;
+            
+            return (
+                <section className="p-4 md:p-8 max-w-5xl mx-auto">
+                    <h2 className="text-size-2 font-black uppercase text-coffee-dark text-center mb-8 tracking-tighter">Lịch sử Đơn Hàng & Đánh Giá</h2>
+                    <div className="space-y-6">
+                        {orders.map((order, idx) => (
+                            <div key={idx} className="glass-effect p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-white">
+                                <div className="flex flex-wrap gap-4 justify-between items-center border-b-2 border-white/50 pb-4 mb-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center text-gray-400 shadow-sm shrink-0">
+                                            <i className="fa-solid fa-receipt text-size-2"></i>
+                                        </div>
+                                        <div>
+                                            <p className="text-size-1 font-black text-coffee-dark">{order.id}</p>
+                                            <p className="text-size-1 font-medium text-gray-500">{order.time} - {order.type}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-size-2 font-black text-coffee-green leading-none">{order.total.toLocaleString()}đ</p>
+                                        <p className="text-size-1 font-bold text-green-600 bg-green-50 px-4 py-1 rounded-full inline-block mt-2 border border-green-100">{order.status}</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-3">
+                                    <p className="text-size-1 font-black text-gray-500 uppercase tracking-widest ml-2 mb-4">Chi tiết các món</p>
+                                    {order.items.map((item, i) => {
+                                        const hasReviewed = reviews[`${order.id}-${item.SanPhamID}`];
+                                        return (
+                                            <div key={i} className="flex justify-between items-center bg-white/60 p-4 rounded-2xl border border-white">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-coffee-green shadow-sm shrink-0">
+                                                        <i className={`fa-solid ${item.icon} text-size-1`}></i>
+                                                    </div>
+                                                    <span className="text-size-1 font-black text-gray-700">{item.TenSanPham}</span>
+                                                </div>
+                                                {hasReviewed ? (
+                                                    <div className="flex items-center gap-2 bg-yellow-50/80 px-4 py-2 rounded-full border border-yellow-100 shrink-0">
+                                                        <i className="fa-solid fa-star text-coffee-yellow"></i>
+                                                        <span className="text-size-1 font-black text-coffee-yellow">{hasReviewed.rating}</span>
+                                                    </div>
+                                                ) : (
+                                                    <button onClick={() => onOpenReview(order, item)} className="bg-white border-2 border-coffee-green text-coffee-green hover:bg-coffee-green hover:text-white px-6 py-2 rounded-full font-bold text-size-1 transition-colors shrink-0 shadow-sm">
+                                                        Đánh giá
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            );
+        };
+
+        // View 5: Hồ sơ (Đã được làm gọn và bổ sung Quyền lợi)
+        const ProfileView = ({ user, onLogout }) => {
+            if (!user) return <div className="p-16 text-center"><h2 className="text-size-2 font-black uppercase text-gray-500">Vui lòng đăng nhập</h2></div>;
+            return (
+                <section className="p-4 md:p-8 max-w-5xl mx-auto">
+                    <h2 className="text-size-2 font-black uppercase text-coffee-dark text-center mb-8 tracking-tighter">Hồ Sơ Của Bạn</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                        {/* Thông tin cá nhân */}
+                        <div className="glass-effect p-8 md:p-10 rounded-[3rem] shadow-xl text-center border border-white">
+                            <div className="w-32 h-32 bg-gradient-to-tr from-coffee-yellow to-yellow-300 rounded-[2.5rem] rotate-3 mx-auto mb-6 flex items-center justify-center text-white shadow-lg">
+                                <i className="fa-solid fa-user text-[4rem] -rotate-3"></i>
+                            </div>
+                            <h3 className="text-size-2 font-black uppercase text-coffee-dark mb-2 leading-none">{user.HoTen}</h3>
+                            <div className="inline-block bg-green-50 text-coffee-green px-5 py-2 rounded-full text-size-1 font-black mb-6 border border-green-100 uppercase tracking-widest">
+                                <i className="fa-solid fa-crown mr-2"></i>Hạng {user.TenHang}
+                            </div>
+                            <div className="bg-white/80 p-6 rounded-3xl shadow-sm border border-white mb-8">
+                                <p className="text-size-1 font-black uppercase text-gray-500 tracking-widest mb-2">Điểm tích luỹ</p>
+                                <p className="text-size-2 font-black text-coffee-yellow leading-none">{user.TongDiem}</p>
+                            </div>
+                            <button onClick={onLogout} className="w-full py-4 bg-white text-red-500 rounded-full font-black text-size-1 hover:bg-red-50 transition-colors shadow-sm uppercase tracking-widest border border-red-100">Đăng Xuất Tài Khoản</button>
+                        </div>
+
+                        {/* Quyền lợi thành viên */}
+                        <div className="glass-effect p-8 md:p-10 rounded-[3rem] shadow-xl border border-white h-full">
+                            <h3 className="text-size-1 font-black uppercase text-coffee-dark mb-6 tracking-widest">Quyền lợi hạng {user.TenHang}</h3>
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-4 bg-white/60 p-4 rounded-2xl">
+                                    <div className="w-12 h-12 bg-coffee-yellow text-white rounded-full flex items-center justify-center shrink-0 shadow-sm"><i className="fa-solid fa-percent"></i></div>
+                                    <div><p className="text-size-1 font-black text-coffee-dark">Giảm giá {user.GiamGia}%</p><p className="text-size-1 text-gray-500 font-medium">Áp dụng cho mọi đơn hàng</p></div>
+                                </div>
+                                <div className="flex items-center gap-4 bg-white/60 p-4 rounded-2xl">
+                                    <div className="w-12 h-12 bg-coffee-green text-white rounded-full flex items-center justify-center shrink-0 shadow-sm"><i className="fa-solid fa-gift"></i></div>
+                                    <div><p className="text-size-1 font-black text-coffee-dark">Quà Tặng Sinh Nhật</p><p className="text-size-1 text-gray-500 font-medium">Nhận 1 bánh miễn phí vào tháng sinh</p></div>
+                                </div>
+                                <div className="flex items-center gap-4 bg-white/60 p-4 rounded-2xl">
+                                    <div className="w-12 h-12 bg-blue-400 text-white rounded-full flex items-center justify-center shrink-0 shadow-sm"><i className="fa-solid fa-motorcycle"></i></div>
+                                    <div><p className="text-size-1 font-black text-coffee-dark">Freeship</p><p className="text-size-1 text-gray-500 font-medium">Miễn phí giao hàng bán kính 3km</p></div>
+                                </div>
+                            </div>
+                            <button className="w-full mt-8 py-4 bg-coffee-dark text-white rounded-full font-black text-size-1 hover:bg-black transition-colors uppercase tracking-widest shadow-lg">Xem Bảng Xếp Hạng</button>
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        // --- APP CHÍNH ---
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [activeTab, setActiveTab] = useState('home');
+            const [isAuthModalOpen, setAuthModalOpen] = useState(false);
+            const [isCartOpen, setCartOpen] = useState(false);
+            const [cart, setCart] = useState([]);
+            const [notification, setNotification] = useState('');
+            const [selectedProduct, setSelectedProduct] = useState(null);
+            
+            const [mockOrders] = useState([
+                { id: '#DH1002', time: 'Hôm qua', type: 'Tại quán', total: 85000, status: 'Hoàn thành', items: [{ SanPhamID: 1, TenSanPham: 'CÀ PHÊ ĐEN TRUYỀN THỐNG', icon: 'fa-mug-hot' }, { SanPhamID: 4, TenSanPham: 'BÁNH CROISSANT', icon: 'fa-cookie' }] },
+                { id: '#DH0981', time: '20/05/2026', type: 'Giao hàng', total: 120000, status: 'Hoàn thành', items: [{ SanPhamID: 2, TenSanPham: 'BẠC XỈU ĐÁ', icon: 'fa-mug-saucer' }, { SanPhamID: 7, TenSanPham: 'TIRAMISU', icon: 'fa-cake-candles' }] }
+            ]);
+            const [reviews, setReviews] = useState({});
+            const [reviewingItem, setReviewingItem] = useState(null);
+
+            const showNotify = (msg) => { setNotification(msg); setTimeout(() => setNotification(''), 3000); };
+            const handleLogin = (userData) => { setUser(userData); setAuthModalOpen(false); showNotify(`Chào mừng ${userData.HoTen}!`); };
+            const handleLogout = () => { setUser(null); setActiveTab('home'); showNotify('Đã đăng xuất.'); };
+            const handleAddToCart = (cartItem) => { setCart([...cart, cartItem]); showNotify(`Đã thêm ${cartItem.TenSanPham}`); };
+            const removeFromCart = (cartId) => setCart(cart.filter(item => item.cartId !== cartId));
+            const handleSubmitReview = (oId, pId, data) => { setReviews(prev => ({...prev, [`${oId}-${pId}`]: data})); setReviewingItem(null); showNotify('Cảm ơn bạn đã đánh giá!'); };
+            
+            const handleCheckout = (total, orderType, deliveryInfo) => {
+                if (!user) return setAuthModalOpen(true);
+                let msg = `Đặt hàng (${orderType}) thành công!`;
+                if (orderType === 'Giao Hàng') msg += ` Giao đến: ${deliveryInfo.address}`;
+                showNotify(msg);
+                setCart([]); setCartOpen(false); setActiveTab('history'); // Chuyển thẳng tới History
+            };
+
+            return (
+                <div className="relative w-full max-w-screen-2xl mx-auto min-h-screen flex flex-col md:p-4">
+                    <div className="bg-grid-pattern fixed inset-0 -z-20"></div>
+
+                    <div className="flex-1 bg-white/20 backdrop-blur-3xl md:rounded-[3rem] border border-white/50 shadow-2xl flex flex-col relative overflow-hidden">
+                        <div className="tape-deco tape-top-left text-size-1">COFFEE SYSTEM</div>
+                        <div className="tape-deco tape-bottom-right text-size-1">COFFEE SYSTEM</div>
+
+                        {/* Thanh điều hướng CẬP NHẬT: Thêm Tab Lịch Sử */}
+                        <nav className="flex flex-col md:flex-row justify-between items-center p-6 bg-white/40 border-b border-white relative z-30 gap-4">
+                            <div className="flex items-center space-x-2 cursor-pointer hover:scale-105 transition-transform" onClick={()=>setActiveTab('home')}>
+                                <div className="w-12 h-12 bg-coffee-green rounded-full flex items-center justify-center text-white shadow-md">
+                                    <i className="fa-solid fa-seedling text-size-2"></i>
+                                </div>
+                                <span className="text-size-2 font-black tracking-tighter text-coffee-green uppercase">Heritage</span>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2 bg-white/50 p-2 rounded-full shadow-sm overflow-x-auto no-scrollbar w-full md:w-auto">
+                                {[{ id: 'home', label: 'Trang chủ' }, { id: 'menu', label: 'Thực đơn' }, { id: 'booking', label: 'Đặt bàn' }, { id: 'history', label: 'Lịch sử' }].map(tab => (
+                                    <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`text-size-1 font-black uppercase whitespace-nowrap px-6 py-2 rounded-full transition-all ${activeTab === tab.id ? 'bg-coffee-green text-white shadow-md' : 'text-gray-600 hover:bg-white'}`}>
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="flex gap-2">
+                                <button onClick={() => setCartOpen(true)} className="text-size-1 font-black bg-white text-coffee-dark px-6 py-3 rounded-full hover:bg-gray-50 transition-colors shadow-sm flex items-center gap-2 uppercase">
+                                    <i className="fa-solid fa-basket-shopping text-coffee-green"></i> Giỏ ({cart.length})
+                                </button>
+                                {user ? (
+                                    <button onClick={() => setActiveTab('profile')} className="text-size-1 font-black bg-coffee-dark text-white px-6 py-3 rounded-full hover:bg-black transition-colors shadow-sm flex items-center gap-2 uppercase">
+                                        <i className="fa-solid fa-user text-coffee-yellow"></i> {user.HoTen.split(' ').pop()}
+                                    </button>
+                                ) : (
+                                    <button onClick={() => setAuthModalOpen(true)} className="text-size-1 font-black bg-coffee-yellow text-coffee-dark px-6 py-3 rounded-full hover:-translate-y-1 transition-transform shadow-lg uppercase">
+                                        Đăng Nhập
+                                    </button>
+                                )}
+                            </div>
+                        </nav>
+
+                        {/* Thông báo Alert */}
+                        {notification && (
+                            <div className="fixed top-28 left-1/2 transform -translate-x-1/2 z-[80] bg-coffee-dark/90 backdrop-blur-md text-white text-size-1 font-bold py-3 px-8 rounded-full border border-coffee-yellow animate-bounce shadow-xl text-center w-max max-w-[90%]">
+                                {notification}
+                            </div>
+                        )}
+
+                        {/* Khu vực nội dung View */}
+                        <div className="flex-1 relative z-10 w-full overflow-y-auto no-scrollbar scroll-smooth">
+                            {activeTab === 'home' && <HomeView onNavigate={setActiveTab} />}
+                            {activeTab === 'menu' && <MenuView onProductSelect={setSelectedProduct} />}
+                            {activeTab === 'booking' && <BookingView user={user} showNotify={showNotify} onRequireLogin={()=>setAuthModalOpen(true)} />}
+                            {activeTab === 'history' && <HistoryView user={user} orders={mockOrders} reviews={reviews} onOpenReview={(order, item) => setReviewingItem({order, item})} />}
+                            {activeTab === 'profile' && <ProfileView user={user} onLogout={handleLogout} />}
+                        </div>
+
+                        {/* Footer */}
+                        <footer className="bg-white/40 p-6 text-center z-20 mt-auto border-t border-white/50 backdrop-blur-md">
+                            <p className="text-size-1 font-black uppercase tracking-widest text-coffee-dark mb-1">Heritage Coffee & Tea</p>
+                            <p className="text-size-1 font-medium text-gray-500">Hệ thống quản lý thông minh 2026</p>
+                        </footer>
+                    </div>
+
+                    {/* Modals nổi */}
+                    {isAuthModalOpen && <AuthModal onClose={() => setAuthModalOpen(false)} onLogin={handleLogin} />}
+                    {selectedProduct && <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} onAddToCart={handleAddToCart} />}
+                    {reviewingItem && <ReviewModal order={reviewingItem.order} item={reviewingItem.item} onClose={() => setReviewingItem(null)} onSubmit={handleSubmitReview} />}
+                    <CartPanel isOpen={isCartOpen} onClose={() => setCartOpen(false)} cart={cart} removeFromCart={removeFromCart} checkout={handleCheckout} user={user} />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
