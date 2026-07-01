@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
+import { supabase } from './supabaseClient'
+import { getMembershipRank, calculateOrderPoints } from './utils/membershipUtils'
 
 // Layout & Modals
 import Navbar from './components/Navbar'
@@ -11,6 +13,7 @@ import CartPanel from './components/CartPanel'
 
 // Client Views
 import HomeView from './views/HomeView'
+import FeaturesView from './views/FeaturesView'
 import MenuView from './views/MenuView'
 import BookingView from './views/BookingView'
 import HistoryView from './views/HistoryView'
@@ -73,6 +76,68 @@ function App() {
     }
   }, [user, location.pathname, navigate])
 
+  // Realtime order status notifications for customers
+  useEffect(() => {
+    if (!user || !import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) return
+
+    const channelOrder = supabase
+      .channel(`customer_order_notify_${user.NguoiDungID}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'donhang',
+          filter: `KhachHangID=eq.${user.NguoiDungID}`
+        },
+        (payload) => {
+          const newRow = payload.new
+          const oldRow = payload.old
+          if (newRow && oldRow && newRow.TrangThai !== oldRow.TrangThai) {
+            if (newRow.TrangThai === 'DangGiao') {
+              showNotify(`🚚 Đơn hàng #${newRow.MaDonHang || newRow.DonHangID} đang được giao đến bạn!`)
+            } else if (newRow.TrangThai === 'HoanThanh') {
+              showNotify(`✅ Đơn hàng #${newRow.MaDonHang || newRow.DonHangID} đã giao thành công và nhận hàng!`)
+            } else if (newRow.TrangThai === 'DangPhaChe') {
+              showNotify(`☕ Đơn hàng #${newRow.MaDonHang || newRow.DonHangID} đang được pha chế!`)
+            } else if (newRow.TrangThai === 'DaHuy') {
+              showNotify(`❌ Đơn hàng #${newRow.MaDonHang || newRow.DonHangID} đã bị hủy.`)
+            }
+          }
+        }
+      )
+      .subscribe()
+
+    const channelBooking = supabase
+      .channel(`customer_booking_notify_${user.NguoiDungID}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'datban',
+          filter: `KhachHangID=eq.${user.NguoiDungID}`
+        },
+        (payload) => {
+          const newRow = payload.new
+          const oldRow = payload.old
+          if (newRow && oldRow && newRow.TrangThai !== oldRow.TrangThai) {
+            if (newRow.TrangThai === 'DaXacNhan') {
+              showNotify(`🎉 Yêu cầu đặt bàn của bạn đã được nhà hàng xác nhận thành công!`)
+            } else if (newRow.TrangThai === 'DaHuy') {
+              showNotify(`❌ Yêu cầu đặt bàn của bạn đã bị từ chối/hủy. Vui lòng liên hệ quán để biết chi tiết.`)
+            }
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channelOrder)
+      supabase.removeChannel(channelBooking)
+    }
+  }, [user])
+
   const handleLogout = () => {
     setUser(null)
     localStorage.removeItem('coffee_user')
@@ -109,6 +174,24 @@ function App() {
     setCartOpen(false)
 
     let completionMessage = `Đặt đơn ${deliveryInfo.code} thành công! Giá trị: ${totalAmount.toLocaleString()}đ.`
+    
+    if (user) {
+      const earnedPoints = calculateOrderPoints(totalAmount)
+      const newPoints = (user.TongDiem || 0) + earnedPoints
+      const newRank = getMembershipRank(newPoints)
+      
+      const updatedUser = {
+        ...user,
+        TongDiem: newPoints,
+        HangThanhVienID: newRank.id,
+        TenHang: newRank.name,
+        GiamGia: newRank.discount
+      }
+      setUser(updatedUser)
+      localStorage.setItem('coffee_user', JSON.stringify(updatedUser))
+      completionMessage += ` 🎁 Bạn đã tích lũy thêm +${earnedPoints} điểm (Hạng ${newRank.name})!`
+    }
+
     if (orderType === 'Giao Hàng') {
       completionMessage += ` Đồ uống sẽ được giao tới SĐT: ${deliveryInfo.phone}.`
     } else {
@@ -165,6 +248,7 @@ function App() {
       <div className="flex-1 w-full flex flex-col justify-start">
         <Routes>
           <Route path="/" element={<HomeView />} />
+          <Route path="/features" element={<FeaturesView />} />
           <Route path="/menu" element={<MenuView onProductSelect={setSelectedProduct} />} />
           <Route
             path="/booking"
@@ -183,10 +267,25 @@ function App() {
                 user={user}
                 reviews={reviews}
                 onOpenReview={(order, item) => setActiveReview({ order, item })}
+                showNotify={showNotify}
               />
             }
           />
-          <Route path="/profile" element={<ProfileView user={user} onLogout={handleLogout} />} />
+          <Route
+            path="/profile"
+            element={
+              <ProfileView
+                user={user}
+                onLogout={handleLogout}
+                onUpdateUser={(updated) => {
+                  setUser(updated)
+                  localStorage.setItem('coffee_user', JSON.stringify(updated))
+                  showNotify('Đã cập nhật thông tin cá nhân thành công!')
+                }}
+                showNotify={showNotify}
+              />
+            }
+          />
         </Routes>
       </div>
 

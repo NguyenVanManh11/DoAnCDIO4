@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import CustomDropdown from '../components/CustomDropdown'
 
 const InventoryView = ({ showNotify }) => {
   const [inventory, setInventory] = useState([])
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
+  const [editingItem, setEditingItem] = useState(null)
   const [formName, setFormName] = useState('')
   const [formUnit, setFormUnit] = useState('kg')
   const [formQty, setFormQty] = useState(10)
@@ -33,40 +35,93 @@ const InventoryView = ({ showNotify }) => {
     fetchInventory()
   }, [])
 
+  const openAddModal = () => {
+    setEditingItem(null)
+    setFormName('')
+    setFormUnit('kg')
+    setFormQty(10)
+    setFormMinQty(2)
+    setShowModal(true)
+  }
+
+  const openEditModal = (item) => {
+    setEditingItem(item)
+    setFormName(item.TenNguyenLieu)
+    setFormUnit(item.DonViTinh)
+    setFormQty(item.SoLuongTon)
+    setFormMinQty(item.SoLuongToiThieu)
+    setShowModal(true)
+  }
+
+  const handleDeleteInventory = async (id, name) => {
+    if (!window.confirm(`Bạn có chắc muốn xóa nguyên liệu "${name}"?`)) return
+    if (isConfigured) {
+      try {
+        await supabase.from('nguyenlieu').delete().eq('NguyenLieuID', id)
+      } catch (err) {
+        console.error('Lỗi xóa kho DB:', err.message)
+      }
+    }
+    setInventory(prev => prev.filter(i => i.NguyenLieuID !== id))
+    showNotify(`Đã xóa nguyên liệu: ${name}`)
+  }
+
   const handleSaveInventory = async (e) => {
     e.preventDefault()
-    if (!isConfigured) {
-      setInventory(prev => [{
+
+    if (editingItem) {
+      if (isConfigured) {
+        try {
+          await supabase.from('nguyenlieu').update({
+            TenNguyenLieu: formName,
+            DonViTinh: formUnit,
+            SoLuongTon: formQty,
+            SoLuongToiThieu: formMinQty
+          }).eq('NguyenLieuID', editingItem.NguyenLieuID)
+        } catch (err) {
+          console.error('Lỗi cập nhật kho DB:', err.message)
+        }
+      }
+      setInventory(prev => prev.map(i => i.NguyenLieuID === editingItem.NguyenLieuID ? {
+        ...i,
+        TenNguyenLieu: formName,
+        DonViTinh: formUnit,
+        SoLuongTon: Number(formQty),
+        SoLuongToiThieu: Number(formMinQty)
+      } : i))
+      setShowModal(false)
+      showNotify(`Đã cập nhật nguyên liệu: ${formName}`)
+    } else {
+      let newItem = {
         NguyenLieuID: Date.now(),
         TenNguyenLieu: formName,
         DonViTinh: formUnit,
-        SoLuongTon: formQty,
-        SoLuongToiThieu: formMinQty
-      }, ...prev])
+        SoLuongTon: Number(formQty),
+        SoLuongToiThieu: Number(formMinQty)
+      }
+
+      if (isConfigured) {
+        try {
+          const { data, error } = await supabase
+            .from('nguyenlieu')
+            .insert({
+              TenNguyenLieu: formName,
+              DonViTinh: formUnit,
+              SoLuongTon: Number(formQty),
+              SoLuongToiThieu: Number(formMinQty)
+            })
+            .select()
+            .single()
+
+          if (!error && data) newItem = data
+        } catch (err) {
+          console.error('Lỗi nhập kho DB:', err.message)
+        }
+      }
+
+      setInventory(prev => [newItem, ...prev])
       setShowModal(false)
       showNotify('Nhập kho thành công!')
-      return
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('nguyenlieu')
-        .insert({
-          TenNguyenLieu: formName,
-          DonViTinh: formUnit,
-          SoLuongTon: formQty,
-          SoLuongToiThieu: formMinQty
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-      setInventory(prev => [data, ...prev])
-      setShowModal(false)
-      showNotify('Nhập kho thành công!')
-    } catch (err) {
-      console.error('Lỗi khi nhập kho:', err.message)
-      alert('Không thể nhập kho. Tên nguyên liệu có thể đã tồn tại.')
     }
   }
 
@@ -81,7 +136,7 @@ const InventoryView = ({ showNotify }) => {
             Kiểm soát nguyên liệu và cảnh báo tồn kho (AI Support)
           </p>
         </div>
-        <button className="btn-primary py-2.5 px-5 text-size-0 whitespace-nowrap" onClick={() => setShowModal(true)}>
+        <button className="btn-primary py-2.5 px-5 text-size-0 whitespace-nowrap" onClick={openAddModal}>
           <i className="fa-solid fa-box-open"></i> Nhập Nguyên Liệu
         </button>
       </div>
@@ -124,9 +179,17 @@ const InventoryView = ({ showNotify }) => {
                     </td>
                     <td className="py-4 text-gray-600 text-size-1">{parseFloat(i.SoLuongToiThieu)}</td>
                     <td className="py-4 pr-4 text-right">
-                      <span className={`text-[0.7rem] font-black uppercase px-2 py-1 rounded-full border ${isLow ? 'text-red-500 bg-red-50 border-red-200' : 'text-green-600 bg-green-50 border-green-100'}`}>
-                        {isLow ? 'Sắp Hết' : 'Ổn Định'}
-                      </span>
+                      <div className="flex items-center justify-end gap-2">
+                        <span className={`text-[0.7rem] font-black uppercase px-2 py-1 rounded-full border ${isLow ? 'text-red-500 bg-red-50 border-red-200' : 'text-green-600 bg-green-50 border-green-100'}`}>
+                          {isLow ? 'Sắp Hết' : 'Ổn Định'}
+                        </span>
+                        <button onClick={() => openEditModal(i)} className="btn-icon" title="Sửa">
+                          <i className="fa-solid fa-pen text-size-0"></i>
+                        </button>
+                        <button onClick={() => handleDeleteInventory(i.NguyenLieuID, i.TenNguyenLieu)} className="btn-icon text-red-500 hover:bg-red-500 hover:text-white" title="Xóa">
+                          <i className="fa-solid fa-trash text-size-0"></i>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )
@@ -145,7 +208,9 @@ const InventoryView = ({ showNotify }) => {
         <div className="fixed inset-0 bg-coffee-dark/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="glass-effect p-8 rounded-[2.5rem] relative max-w-md w-full shadow-2xl border border-white animate-fade-in max-h-[90vh] overflow-y-auto no-scrollbar">
             <button onClick={() => setShowModal(false)} className="absolute top-6 right-6 btn-icon">&times;</button>
-            <h3 className="text-size-2 font-black text-coffee-green uppercase mb-6 tracking-tighter text-center">Nhập Nguyên Liệu</h3>
+            <h3 className="text-size-2 font-black text-coffee-green uppercase mb-6 tracking-tighter text-center">
+              {editingItem ? 'Sửa Nguyên Liệu' : 'Nhập Nguyên Liệu'}
+            </h3>
             <form onSubmit={handleSaveInventory} className="space-y-4">
               <div>
                 <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Tên Nguyên Liệu</label>
@@ -153,7 +218,21 @@ const InventoryView = ({ showNotify }) => {
               </div>
               <div>
                 <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Đơn Vị Tính</label>
-                <input type="text" required value={formUnit} onChange={(e) => setFormUnit(e.target.value)} className="w-full py-2.5 px-4 rounded-2xl bg-white/80 border border-gray-200 text-size-1 font-bold outline-none" placeholder="kg" />
+                <CustomDropdown
+                  options={[
+                    { value: 'kg', label: 'Kilogram (kg)', icon: 'fa-scale-balanced', color: 'bg-amber-100 text-amber-800' },
+                    { value: 'g', label: 'Gram (g)', icon: 'fa-weight-hanging', color: 'bg-amber-50 text-amber-700' },
+                    { value: 'lít', label: 'Lít (l)', icon: 'fa-bottle-water', color: 'bg-blue-100 text-blue-800' },
+                    { value: 'ml', label: 'Mililit (ml)', icon: 'fa-tint', color: 'bg-blue-50 text-blue-700' },
+                    { value: 'hộp', label: 'Hộp', icon: 'fa-box', color: 'bg-emerald-100 text-emerald-800' },
+                    { value: 'chai', label: 'Chai', icon: 'fa-wine-bottle', color: 'bg-purple-100 text-purple-800' },
+                    { value: 'bao', label: 'Bao / Túi', icon: 'fa-bag-shopping', color: 'bg-orange-100 text-orange-800' },
+                    { value: 'lon', label: 'Lon', icon: 'fa-prescription-bottle', color: 'bg-red-100 text-red-800' }
+                  ]}
+                  value={formUnit}
+                  onChange={(val) => setFormUnit(val)}
+                  placeholder="Chọn đơn vị tính"
+                />
               </div>
               <div>
                 <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Số Lượng Tồn</label>
@@ -163,7 +242,9 @@ const InventoryView = ({ showNotify }) => {
                 <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Mức Tối Thiểu Cảnh Báo</label>
                 <input type="number" required value={formMinQty} onChange={(e) => setFormMinQty(Number(e.target.value))} className="w-full py-2.5 px-4 rounded-2xl bg-white/80 border border-gray-200 text-size-1 font-bold outline-none" placeholder="2" />
               </div>
-              <button type="submit" className="w-full btn-primary py-3 mt-4 text-size-1">Nhập Kho</button>
+              <button type="submit" className="w-full btn-primary py-3 mt-4 text-size-1">
+                {editingItem ? 'Cập Nhật Kho' : 'Nhập Kho'}
+              </button>
             </form>
           </div>
         </div>

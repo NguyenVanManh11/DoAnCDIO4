@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import { calculateOrderPoints } from '../utils/membershipUtils'
 
 const VOUCHERS = [
   { code: 'GIAM10K', discount: 10000, type: 'TienMat' }
@@ -266,6 +267,12 @@ const CartPanel = ({ isOpen, onClose, cart, removeFromCart, checkout, user, tabl
               <div className="flex justify-between text-size-1 font-bold text-coffee-green">
                 <span>Voucher:</span>
                 <span>-{discount.toLocaleString()}đ</span>
+              </div>
+            )}
+            {user && (
+              <div className="flex justify-between text-[0.8rem] font-bold text-emerald-600 bg-emerald-50 p-2.5 rounded-xl border border-emerald-100 mt-2">
+                <span>🎁 Tích lũy điểm đơn này:</span>
+                <span>+{calculateOrderPoints(finalTotal)} điểm</span>
               </div>
             )}
           </div>

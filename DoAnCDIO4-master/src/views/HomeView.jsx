@@ -11,6 +11,11 @@ const HomeView = () => {
     { t: 'Live Acoustic', i: 'fa-guitar' },
   ]
 
+  const handleImageError = (e, fallbackUrl) => {
+    e.target.onerror = null
+    e.target.src = fallbackUrl || 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=800&q=80'
+  }
+
   return (
     <main className="p-4 md:p-16 relative flex flex-col items-center text-center animate-fade-in w-full max-w-6xl mx-auto">
       <div className="absolute top-10 left-[10%] text-coffee-yellow text-size-2 opacity-80 animate-pulse">✨</div>
@@ -48,12 +53,16 @@ const HomeView = () => {
           {features.map((f, idx) => (
             <div
               key={idx}
-              className="glass-effect p-6 rounded-[2rem] text-center hover:scale-105 hover:shadow-2xl transition-all duration-300 group border border-white"
+              onClick={() => navigate('/features')}
+              className="glass-effect p-6 rounded-[2rem] text-center hover:scale-105 hover:shadow-2xl transition-all duration-300 group border border-white cursor-pointer relative"
             >
               <div className="w-16 h-16 bg-white rounded-full mx-auto mb-4 flex items-center justify-center text-size-2 text-coffee-green group-hover:bg-coffee-green group-hover:text-white group-hover:scale-110 transition-all duration-300 shadow-sm">
                 <i className={`fa-solid ${f.i}`}></i>
               </div>
               <h3 className="text-size-1 font-black text-coffee-dark uppercase">{f.t}</h3>
+              <p className="text-xs text-coffee-green font-bold mt-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                Khám phá chi tiết <i className="fa-solid fa-arrow-right text-[10px]"></i>
+              </p>
             </div>
           ))}
         </div>
@@ -80,18 +89,38 @@ const HomeView = () => {
           <div className="grid grid-cols-2 gap-4 h-[400px]">
             <div className="space-y-4 h-full">
               <div className="h-[60%] rounded-3xl overflow-hidden shadow-lg group">
-                <img src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=600&q=80" alt="Cafe interior" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                <img 
+                  src="https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=800&q=80" 
+                  alt="Cafe interior" 
+                  onError={(e) => handleImageError(e, 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=800&q=80')}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                />
               </div>
               <div className="h-[35%] rounded-3xl overflow-hidden shadow-lg group">
-                <img src="https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=600&q=80" alt="Coffee brewing" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                <img 
+                  src="https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=800&q=80" 
+                  alt="Coffee brewing" 
+                  onError={(e) => handleImageError(e, 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=80')}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                />
               </div>
             </div>
             <div className="space-y-4 h-full pt-8">
               <div className="h-[45%] rounded-3xl overflow-hidden shadow-lg group">
-                <img src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=600&q=80" alt="Coffee shop" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                <img 
+                  src="https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=800&q=80" 
+                  alt="Coffee shop" 
+                  onError={(e) => handleImageError(e, 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=800&q=80')}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                />
               </div>
               <div className="h-[50%] rounded-3xl overflow-hidden shadow-lg group relative">
-                <img src="https://images.unsplash.com/photo-1445116572658-2207407a4a9b?auto=format&fit=crop&w=600&q=80" alt="Coffee art" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                <img 
+                  src="https://images.unsplash.com/photo-1442512595331-e89e73853f31?auto=format&fit=crop&w=800&q=80" 
+                  alt="Coffee art" 
+                  onError={(e) => handleImageError(e, 'https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=800&q=80')}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                />
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500"></div>
               </div>
             </div>

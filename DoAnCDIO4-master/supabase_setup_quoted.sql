@@ -328,10 +328,13 @@ INSERT INTO vaitro ("VaiTroID", "TenVaiTro", "MoTa") VALUES
 ON CONFLICT ("TenVaiTro") DO NOTHING;
 
 INSERT INTO hangthanhvien ("HangThanhVienID", "TenHang", "DiemToiThieu", "PhanTramGiam") VALUES
-(1, 'Silver', 0, 0.00),
-(2, 'Gold', 1000, 5.00),
-(3, 'Diamond', 5000, 10.00)
-ON CONFLICT ("TenHang") DO NOTHING;
+(1, 'Thường', 0, 0.00),
+(2, 'Đồng', 100, 3.00),
+(3, 'Bạc', 300, 5.00),
+(4, 'Vàng', 500, 8.00),
+(5, 'Bạch Kim', 700, 10.00),
+(6, 'Kim Cương', 1001, 15.00)
+ON CONFLICT ("HangThanhVienID") DO UPDATE SET "TenHang" = EXCLUDED."TenHang", "DiemToiThieu" = EXCLUDED."DiemToiThieu", "PhanTramGiam" = EXCLUDED."PhanTramGiam";
 
 INSERT INTO ban ("BanID", "TenBan", "SucChua", "TrangThai") VALUES
 (1, 'Bàn 1', 2, 'Trong'), (2, 'Bàn 2', 2, 'DangDung'),

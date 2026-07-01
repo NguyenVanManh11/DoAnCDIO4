@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import { getMembershipRank, calculateOrderPoints } from '../utils/membershipUtils'
 
 const FILTER_TABS = [
   { id: 'Tất cả', label: 'Tất cả' },
@@ -30,7 +31,7 @@ const OrdersView = ({ showNotify }) => {
           ThanhTien,
           TrangThai,
           GhiChu,
-          nguoidung:KhachHangID ( HoTen ),
+          nguoidung:KhachHangID ( NguoiDungID, HoTen, TongDiem ),
           chitietdonhang:chitietdonhang (
             SoLuong,
             sanphamsize:SanPhamSizeID (
@@ -57,6 +58,8 @@ const OrdersView = ({ showNotify }) => {
           return {
             id: o.MaDonHang || `#DH${o.DonHangID}`,
             id_db: o.DonHangID,
+            customerId: o.nguoidung?.NguoiDungID || null,
+            customerPoints: o.nguoidung?.TongDiem || 0,
             name: o.nguoidung?.HoTen || 'Khách Vãng Lai',
             items: itemsString,
             total: parseFloat(o.ThanhTien || 0),
@@ -75,6 +78,24 @@ const OrdersView = ({ showNotify }) => {
 
   useEffect(() => {
     fetchOrders()
+
+    const isConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+    if (!isConfigured) return
+
+    const channel = supabase
+      .channel('admin_donhang_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'donhang' },
+        () => {
+          fetchOrders()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const updateOrderStatus = async (orderIdDb, currentCode, targetStatusStr) => {
@@ -94,13 +115,35 @@ const OrdersView = ({ showNotify }) => {
           .eq('DonHangID', orderIdDb)
 
         if (error) throw error
+
+        // Tích điểm thành viên khi hoàn thành đơn
+        if (targetStatusStr === 'Hoàn thành') {
+          const targetOrder = orders.find(o => o.id_db === orderIdDb)
+          if (targetOrder && targetOrder.customerId) {
+            const earnedPoints = calculateOrderPoints(targetOrder.total)
+            const newPoints = (targetOrder.customerPoints || 0) + earnedPoints
+            const newRank = getMembershipRank(newPoints)
+            
+            await supabase
+              .from('nguoidung')
+              .update({ TongDiem: newPoints, HangThanhVienID: newRank.id })
+              .eq('NguoiDungID', targetOrder.customerId)
+              
+            showNotify(`Đơn ${currentCode} hoàn thành! Khách +${earnedPoints} điểm (Tổng ${newPoints}đ - Hạng ${newRank.name})`)
+          } else {
+            showNotify(`Đơn ${currentCode} đã cập nhật sang "${targetStatusStr}"`)
+          }
+        } else {
+          showNotify(`Đơn ${currentCode} đã cập nhật sang "${targetStatusStr}"`)
+        }
+      } else {
+        showNotify(`Đơn ${currentCode} đã cập nhật sang "${targetStatusStr}"`)
       }
 
       // Update local state
       setOrders(prev =>
         prev.map(o => (o.id_db === orderIdDb ? { ...o, status: targetStatusStr } : o))
       )
-      showNotify(`Đơn ${currentCode} đã cập nhật sang "${targetStatusStr}"`)
     } catch (err) {
       console.error('Lỗi cập nhật trạng thái đơn:', err.message)
       alert('Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại!')

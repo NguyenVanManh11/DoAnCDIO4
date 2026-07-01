@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import CustomDropdown from '../components/CustomDropdown'
 
 const ProductsView = ({ showNotify }) => {
   const [products, setProducts] = useState([])
@@ -88,25 +89,24 @@ const ProductsView = ({ showNotify }) => {
     e.preventDefault()
     const isConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
 
-    try {
-      if (editingProduct) {
-        // Edit flow
-        if (isConfigured) {
+    if (editingProduct) {
+      // Edit flow
+      if (isConfigured) {
+        try {
           // 1. Update Product details
           const { error: prodErr } = await supabase
             .from('sanpham')
             .update({
               TenSanPham: formName,
-              DanhMucID: formCategory,
+              DanhMucID: Number(formCategory),
               MoTa: formDesc,
               HinhAnh: formIcon
             })
             .eq('SanPhamID', editingProduct.id)
 
-          if (prodErr) throw prodErr
+          if (prodErr) console.warn('Supabase update warning:', prodErr.message)
 
           // 2. Update size S price (default base price)
-          // Look up size S for this product
           const { data: sizes } = await supabase
             .from('sanphamsize')
             .select('SanPhamSizeID')
@@ -120,7 +120,6 @@ const ProductsView = ({ showNotify }) => {
               .update({ Gia: formPrice })
               .eq('SanPhamSizeID', sizes.SanPhamSizeID)
           } else {
-            // If somehow doesn't exist, insert sizes
             await supabase
               .from('sanphamsize')
               .insert([
@@ -129,27 +128,31 @@ const ProductsView = ({ showNotify }) => {
                 { SanPhamID: editingProduct.id, KichThuoc: 'L', Gia: formPrice + 10000, Calories: 200 }
               ])
           }
+        } catch (err) {
+          console.error('Lỗi khi lưu DB:', err.message)
         }
+      }
 
-        setProducts(prev =>
-          prev.map(p =>
-            p.id === editingProduct.id
-              ? { ...p, name: formName, categoryId: parseInt(formCategory), desc: formDesc, price: formPrice, icon: formIcon }
-              : p
-          )
+      setProducts(prev =>
+        prev.map(p =>
+          p.id === editingProduct.id
+            ? { ...p, name: formName, categoryId: parseInt(formCategory, 10), desc: formDesc, price: Number(formPrice), icon: formIcon }
+            : p
         )
-        showNotify(`Đã sửa sản phẩm: ${formName}`)
-      } else {
-        // Add flow
-        let newId = Date.now()
+      )
+      showNotify(`Đã sửa sản phẩm: ${formName}`)
+    } else {
+      // Add flow
+      let newId = Date.now()
 
-        if (isConfigured) {
+      if (isConfigured) {
+        try {
           // 1. Insert product
           const { data: newProd, error: prodErr } = await supabase
             .from('sanpham')
             .insert({
               TenSanPham: formName,
-              DanhMucID: formCategory,
+              DanhMucID: Number(formCategory),
               MoTa: formDesc,
               HinhAnh: formIcon,
               ConBan: true
@@ -157,31 +160,31 @@ const ProductsView = ({ showNotify }) => {
             .select()
             .single()
 
-          if (prodErr) throw prodErr
-          newId = newProd.SanPhamID
+          if (!prodErr && newProd) {
+            newId = newProd.SanPhamID
 
-          // 2. Insert corresponding product sizes (S, M, L)
-          const { error: sizeErr } = await supabase
-            .from('sanphamsize')
-            .insert([
-              { SanPhamID: newId, KichThuoc: 'S', Gia: formPrice, Calories: 100 },
-              { SanPhamID: newId, KichThuoc: 'M', Gia: formPrice + 5000, Calories: 150 },
-              { SanPhamID: newId, KichThuoc: 'L', Gia: formPrice + 10000, Calories: 200 }
-            ])
-
-          if (sizeErr) throw sizeErr
+            await supabase
+              .from('sanphamsize')
+              .insert([
+                { SanPhamID: newId, KichThuoc: 'S', Gia: formPrice, Calories: 100 },
+                { SanPhamID: newId, KichThuoc: 'M', Gia: formPrice + 5000, Calories: 150 },
+                { SanPhamID: newId, KichThuoc: 'L', Gia: formPrice + 10000, Calories: 200 }
+              ])
+          } else {
+            console.warn('Supabase insert error or offline, fallback to local id:', prodErr?.message)
+          }
+        } catch (err) {
+          console.error('Lỗi khi thêm DB:', err.message)
         }
-
-        setProducts(prev => [
-          ...prev,
-          { id: newId, categoryId: parseInt(formCategory), name: formName, desc: formDesc, price: formPrice, icon: formIcon }
-        ])
-        showNotify(`Đã thêm sản phẩm: ${formName}`)
       }
-      setShowModal(false)
-    } catch (err) {
-      console.error('Lỗi khi lưu sản phẩm:', err.message)
+
+      setProducts(prev => [
+        ...prev,
+        { id: newId, categoryId: parseInt(formCategory, 10), name: formName, desc: formDesc, price: Number(formPrice), icon: formIcon }
+      ])
+      showNotify(`Đã thêm sản phẩm: ${formName}`)
     }
+    setShowModal(false)
   }
 
   const handleDelete = async (pId, name) => {
@@ -326,15 +329,12 @@ const ProductsView = ({ showNotify }) => {
 
               <div>
                 <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Danh mục</label>
-                <select
+                <CustomDropdown
+                  options={categories.map(c => ({ value: c.id, label: c.name, icon: 'fa-tag' }))}
                   value={formCategory}
-                  onChange={(e) => setFormCategory(e.target.value)}
-                  className="w-full py-2.5 px-4 rounded-2xl bg-white/80 border border-gray-200 text-size-1 font-bold outline-none appearance-none"
-                >
-                  {categories.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setFormCategory(Number(val))}
+                  placeholder="Chọn danh mục"
+                />
               </div>
 
               <div>

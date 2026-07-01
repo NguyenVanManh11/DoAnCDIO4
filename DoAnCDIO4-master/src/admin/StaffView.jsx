@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import CustomDropdown from '../components/CustomDropdown'
 
 const StaffView = ({ showNotify }) => {
   const [staff, setStaff] = useState([])
@@ -47,48 +48,54 @@ const StaffView = ({ showNotify }) => {
 
   const handleSaveStaff = async (e) => {
     e.preventDefault()
-    if (!isConfigured) {
-      setStaff(prev => [{
-        NguoiDungID: Date.now(),
-        HoTen: formName,
-        TenDangNhap: formUser,
-        SoDienThoai: formPhone,
-        vaitro: { TenVaiTro: formRole === 2 ? 'Quản Lý' : formRole === 3 ? 'Thu Ngân' : formRole === 4 ? 'Pha Chế' : 'Phục Vụ' },
-        TrangThai: 'HoatDong'
-      }, ...prev])
-      setShowModal(false)
-      showNotify('Thêm nhân viên thành công!')
-      return
+    const isConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+
+    let newStaffItem = {
+      NguoiDungID: Date.now(),
+      HoTen: formName,
+      TenDangNhap: formUser,
+      SoDienThoai: formPhone,
+      VaiTroID: formRole,
+      vaitro: { TenVaiTro: formRole === 2 ? 'Quản Lý' : formRole === 3 ? 'Thu Ngân' : formRole === 4 ? 'Pha Chế' : 'Phục Vụ' },
+      TrangThai: 'HoatDong'
     }
 
-    try {
-      const { data, error } = await supabase
-        .from('nguoidung')
-        .insert({
-          HoTen: formName,
-          TenDangNhap: formUser,
-          SoDienThoai: formPhone,
-          VaiTroID: formRole,
-          TrangThai: 'HoatDong'
-        })
-        .select(`
-          NguoiDungID,
-          HoTen,
-          TenDangNhap,
-          SoDienThoai,
-          TrangThai,
-          vaitro:VaiTroID ( TenVaiTro )
-        `)
-        .single()
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('nguoidung')
+          .insert({
+            HoTen: formName,
+            TenDangNhap: formUser,
+            MatKhau: '123456', // required by schema
+            Email: `${formUser}@coffee.vn`,
+            SoDienThoai: formPhone,
+            VaiTroID: formRole,
+            TrangThai: 'HoatDong'
+          })
+          .select(`
+            NguoiDungID,
+            HoTen,
+            TenDangNhap,
+            SoDienThoai,
+            TrangThai,
+            vaitro:VaiTroID ( TenVaiTro )
+          `)
+          .single()
 
-      if (error) throw error
-      setStaff(prev => [data, ...prev])
-      setShowModal(false)
-      showNotify('Thêm nhân viên thành công!')
-    } catch (err) {
-      console.error('Lỗi khi thêm nhân viên:', err.message)
-      alert('Không thể thêm nhân viên. Username có thể bị trùng.')
+        if (!error && data) {
+          newStaffItem = data
+        } else {
+          console.warn('Supabase staff insert error, fallback to local memory:', error?.message)
+        }
+      } catch (err) {
+        console.error('Lỗi khi thêm nhân viên DB:', err.message)
+      }
     }
+
+    setStaff(prev => [newStaffItem, ...prev])
+    setShowModal(false)
+    showNotify('Thêm nhân viên thành công!')
   }
 
   return (
@@ -172,12 +179,17 @@ const StaffView = ({ showNotify }) => {
               </div>
               <div>
                 <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Vai Trò</label>
-                <select value={formRole} onChange={(e) => setFormRole(Number(e.target.value))} className="w-full py-2.5 px-4 rounded-2xl bg-white/80 border border-gray-200 text-size-1 font-bold outline-none appearance-none">
-                  <option value={2}>Quản Lý</option>
-                  <option value={3}>Thu Ngân</option>
-                  <option value={4}>Pha Chế</option>
-                  <option value={5}>Phục Vụ</option>
-                </select>
+                <CustomDropdown
+                  options={[
+                    { value: 2, label: 'Quản Lý', icon: 'fa-user-tie', color: 'bg-amber-100 text-amber-800' },
+                    { value: 3, label: 'Thu Ngân', icon: 'fa-cash-register', color: 'bg-blue-100 text-blue-800' },
+                    { value: 4, label: 'Pha Chế', icon: 'fa-blender', color: 'bg-emerald-100 text-emerald-800' },
+                    { value: 5, label: 'Phục Vụ', icon: 'fa-concierge-bell', color: 'bg-purple-100 text-purple-800' }
+                  ]}
+                  value={formRole}
+                  onChange={(val) => setFormRole(Number(val))}
+                  placeholder="Chọn vai trò"
+                />
               </div>
               <button type="submit" className="w-full btn-primary py-3 mt-4 text-size-1">Tạo Tài Khoản</button>
             </form>

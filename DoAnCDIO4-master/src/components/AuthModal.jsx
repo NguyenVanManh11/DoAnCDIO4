@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import { getMembershipRank } from '../utils/membershipUtils'
 
 const AuthModal = ({ onClose, onLogin, isAdminMode = false, initialMode = 'login' }) => {
   const [isLoginMode, setIsLoginMode] = useState(initialMode === 'login')
@@ -37,7 +38,7 @@ const AuthModal = ({ onClose, onLogin, isAdminMode = false, initialMode = 'login
       VaiTroID: 6,
       VaiTro: 'Customer',
       HangThanhVienID: 1,
-      TenHang: 'Silver',
+      TenHang: 'Thường',
       TongDiem: 0,
       GiamGia: 0,
       SoDienThoai: phone || '0987654321',
@@ -51,7 +52,7 @@ const AuthModal = ({ onClose, onLogin, isAdminMode = false, initialMode = 'login
       VaiTroID: 1,
       VaiTro: 'Admin',
       HangThanhVienID: 1,
-      TenHang: 'Silver',
+      TenHang: 'Thường',
       TongDiem: 0,
       GiamGia: 0,
       SoDienThoai: '0909090909',
@@ -79,16 +80,17 @@ const AuthModal = ({ onClose, onLogin, isAdminMode = false, initialMode = 'login
           if (dbError) throw dbError
 
           if (data) {
+            const rankInfo = getMembershipRank(data.TongDiem || 0)
             const userObj = {
               NguoiDungID: data.NguoiDungID,
               TenDangNhap: data.TenDangNhap,
               HoTen: data.HoTen,
               VaiTroID: data.VaiTroID,
               VaiTro: data.vaitro?.TenVaiTro || 'Customer',
-              HangThanhVienID: data.HangThanhVienID,
-              TenHang: data.hangthanhvien?.TenHang || 'Silver',
+              HangThanhVienID: rankInfo.id,
+              TenHang: rankInfo.name,
               TongDiem: data.TongDiem || 0,
-              GiamGia: data.hangthanhvien?.PhanTramGiam ? parseFloat(data.hangthanhvien.PhanTramGiam) : 0,
+              GiamGia: rankInfo.discount,
               SoDienThoai: data.SoDienThoai,
               DiaChi: data.DiaChi,
             }
@@ -126,7 +128,7 @@ const AuthModal = ({ onClose, onLogin, isAdminMode = false, initialMode = 'login
               HoTen: fullName,
               SoDienThoai: phone,
               VaiTroID: 6, // Customer
-              HangThanhVienID: 1 // Silver
+              HangThanhVienID: 1 // Thường
             })
             .select(`
               *,
@@ -144,8 +146,8 @@ const AuthModal = ({ onClose, onLogin, isAdminMode = false, initialMode = 'login
               HoTen: newUser.HoTen,
               VaiTroID: newUser.VaiTroID,
               VaiTro: newUser.vaitro?.TenVaiTro || 'Customer',
-              HangThanhVienID: newUser.HangThanhVienID,
-              TenHang: newUser.hangthanhvien?.TenHang || 'Silver',
+              HangThanhVienID: 1,
+              TenHang: 'Thường',
               TongDiem: 0,
               GiamGia: 0,
               SoDienThoai: newUser.SoDienThoai,
@@ -176,7 +178,8 @@ const AuthModal = ({ onClose, onLogin, isAdminMode = false, initialMode = 'login
         if (isLoginMode) {
           if (username === 'khachhang' && password === '123') {
             clearForm()
-            onLogin({ ...DUMMY_USER, TenDangNhap: 'khachhang', HoTen: 'Nguyễn Văn Khách' })
+            const mockRank = getMembershipRank(350) // Mocking Bạc member with 350 pts
+            onLogin({ ...DUMMY_USER, TenDangNhap: 'khachhang', HoTen: 'Nguyễn Văn Khách', TongDiem: 350, TenHang: mockRank.name, HangThanhVienID: mockRank.id, GiamGia: mockRank.discount })
           } else if (username === 'admin' && password === 'admin123') {
             clearForm()
             onLogin(DUMMY_ADMIN)
@@ -185,7 +188,7 @@ const AuthModal = ({ onClose, onLogin, isAdminMode = false, initialMode = 'login
           }
         } else {
           clearForm()
-          onLogin(DUMMY_USER) // Mock successful register
+          onLogin(DUMMY_USER) // Mock successful register as Thường with 0 pts
         }
       }
     }
@@ -209,12 +212,12 @@ const AuthModal = ({ onClose, onLogin, isAdminMode = false, initialMode = 'login
   }
 
   return (
-    <div className="fixed inset-0 bg-coffee-dark/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4 transition-opacity duration-300">
-      <div className="glass-effect p-8 md:p-10 rounded-[2.5rem] relative max-w-md w-full shadow-2xl border border-white/20 max-h-[95vh] overflow-y-auto no-scrollbar animate-zoom-in">
+    <div className="fixed inset-0 bg-coffee-dark/60 backdrop-blur-sm flex items-center justify-center z-[70] p-3 sm:p-4 transition-opacity duration-300">
+      <div className="glass-effect p-5 sm:p-8 md:p-10 rounded-[2rem] sm:rounded-[2.5rem] relative max-w-md w-full shadow-2xl border border-white/20 max-h-[90vh] overflow-y-auto no-scrollbar animate-zoom-in">
         {onClose && (
           <button
             onClick={onClose}
-            className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/20 hover:bg-red-500 hover:text-white flex items-center justify-center text-size-1 text-gray-500 transition-all duration-300 shadow-sm"
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/20 hover:bg-red-500 hover:text-white flex items-center justify-center text-size-1 text-gray-500 transition-all duration-300 shadow-sm"
           >
             <i className="fa-solid fa-xmark"></i>
           </button>

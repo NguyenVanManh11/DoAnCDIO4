@@ -1,7 +1,74 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 
-const HistoryView = ({ user, reviews, onOpenReview }) => {
+const OFFERS = [
+  {
+    id: 1,
+    code: 'GIAM10K',
+    title: 'Giảm Ngay 10.000đ Cho Mọi Đơn',
+    desc: 'Áp dụng cho đơn hàng có giá trị từ 20.000đ trở lên. Nhập mã tại giỏ hàng khi thanh toán.',
+    discountText: '-10K',
+    minOrder: 'Đơn từ 20K',
+    badge: 'Phổ Thông',
+    color: 'from-amber-500 to-orange-500',
+    icon: 'fa-ticket',
+    expiry: 'HSD: 31/08/2026'
+  },
+  {
+    id: 2,
+    code: 'GIAM10PT',
+    title: 'Giảm 10% Tối Đa 30.000đ',
+    desc: 'Áp dụng cho đơn hàng từ 50.000đ. Cực hời khi đặt nước cho nhóm bạn bè, đồng nghiệp.',
+    discountText: '-10%',
+    minOrder: 'Đơn từ 50K',
+    badge: 'Cực Hot',
+    color: 'from-red-500 to-pink-600',
+    icon: 'fa-fire',
+    expiry: 'HSD: 30/09/2026'
+  },
+  {
+    id: 3,
+    code: 'FREESHIP3KM',
+    title: 'Miễn Phí Giao Hàng Bán Kính 3KM',
+    desc: 'Ưu đãi đặc quyền giao đồ uống tận nơi miễn phí phí vận chuyển cho đơn từ 100.000đ.',
+    discountText: 'FREESHIP',
+    minOrder: 'Đơn từ 100K',
+    badge: 'Giao Hàng',
+    color: 'from-blue-500 to-cyan-500',
+    icon: 'fa-motorcycle',
+    expiry: 'HSD: 31/12/2026'
+  },
+  {
+    id: 4,
+    code: 'HERITAGEVIP',
+    title: 'Giảm 15% Đặc Quyền Hội Viên VIP',
+    desc: 'Dành riêng cho hội viên từ hạng Bạc trở lên. Tận hưởng hương vị cao cấp với mức giá ưu đãi nhất.',
+    discountText: '-15%',
+    minOrder: 'Mọi đơn hàng',
+    badge: 'Hội Viên',
+    color: 'from-purple-600 to-indigo-600',
+    icon: 'fa-crown',
+    expiry: 'Không thời hạn'
+  },
+  {
+    id: 5,
+    code: 'ACOUSTIC20',
+    title: 'Giảm 20% Vào Đêm Live Acoustic',
+    desc: 'Áp dụng khi đặt bàn hoặc thưởng thức đồ uống tại không gian Live Acoustic vào tối Thứ 7 & CN.',
+    discountText: '-20%',
+    minOrder: 'Đơn từ 150K',
+    badge: 'Sự Kiện',
+    color: 'from-emerald-600 to-teal-600',
+    icon: 'fa-guitar',
+    expiry: 'Hàng tuần'
+  }
+]
+
+const HistoryView = ({ user, reviews, onOpenReview, showNotify }) => {
+  const navigate = useNavigate()
+  const [activeTab, setActiveTab] = useState('offers')
+  const [copiedCode, setCopiedCode] = useState(null)
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(false)
   const [dbReviews, setDbReviews] = useState({})
@@ -114,6 +181,24 @@ const HistoryView = ({ user, reviews, onOpenReview }) => {
     }
 
     fetchHistoryAndReviews()
+
+    const isConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+    if (!isConfigured) return
+
+    const channel = supabase
+      .channel(`customer_history_realtime_${user.NguoiDungID}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'donhang', filter: `KhachHangID=eq.${user.NguoiDungID}` },
+        () => {
+          fetchHistoryAndReviews()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [user, reviews])
 
   // Merge Supabase reviews and memory reviews
@@ -129,13 +214,129 @@ const HistoryView = ({ user, reviews, onOpenReview }) => {
     )
   }
 
+  const handleCopyCode = (code) => {
+    navigator.clipboard.writeText(code)
+    setCopiedCode(code)
+    if (showNotify) showNotify(`Đã sao chép mã voucher: ${code}`)
+    setTimeout(() => setCopiedCode(null), 3000)
+  }
+
   return (
     <section className="p-4 md:p-8 max-w-5xl mx-auto animate-fade-in">
-      <h2 className="text-size-2 font-black uppercase text-coffee-dark text-center mb-8 tracking-tighter">
-        Lịch sử Đơn Hàng & Đánh Giá
+      <h2 className="text-size-2 font-black uppercase text-coffee-dark text-center mb-6 tracking-tighter">
+        Ưu Đãi & Lịch Sử Hoạt Động
       </h2>
+
+      {/* Tab Switcher */}
+      <div className="flex justify-center mb-8">
+        <div className="bg-white/80 p-1.5 rounded-full shadow-md border border-gray-200/60 inline-flex gap-2">
+          <button
+            onClick={() => setActiveTab('offers')}
+            className={`px-6 py-2.5 rounded-full font-extrabold uppercase text-sm transition-all duration-300 flex items-center gap-2 ${
+              activeTab === 'offers'
+                ? 'bg-gradient-to-r from-coffee-green to-emerald-800 text-white shadow-md shadow-coffee-green/20 scale-105'
+                : 'text-gray-600 hover:text-coffee-green hover:bg-gray-100/50'
+            }`}
+          >
+            <i className="fa-solid fa-gift text-coffee-yellow"></i>
+            🎁 Săn Gói Ưu Đãi ({OFFERS.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('orders')}
+            className={`px-6 py-2.5 rounded-full font-extrabold uppercase text-sm transition-all duration-300 flex items-center gap-2 ${
+              activeTab === 'orders'
+                ? 'bg-gradient-to-r from-coffee-green to-emerald-800 text-white shadow-md shadow-coffee-green/20 scale-105'
+                : 'text-gray-600 hover:text-coffee-green hover:bg-gray-100/50'
+            }`}
+          >
+            <i className="fa-solid fa-receipt text-coffee-yellow"></i>
+            📜 Lịch Sử Đơn Hàng ({orders.length})
+          </button>
+        </div>
+      </div>
       
-      {loading ? (
+      {activeTab === 'offers' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+          {OFFERS.map((offer) => {
+            const isCopied = copiedCode === offer.code
+            return (
+              <div
+                key={offer.id}
+                className="glass-effect p-6 rounded-[2.5rem] shadow-xl border border-white relative overflow-hidden flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl group"
+              >
+                {/* Top Badge */}
+                <div className="flex justify-between items-start mb-4 gap-2">
+                  <div className="flex items-center gap-3.5">
+                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-tr ${offer.color} text-white flex items-center justify-center text-2xl shadow-md shrink-0 group-hover:scale-110 transition-transform duration-300`}>
+                      <i className={`fa-solid ${offer.icon}`}></i>
+                    </div>
+                    <div>
+                      <span className="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase tracking-widest mb-1 border border-emerald-200">
+                        {offer.badge}
+                      </span>
+                      <h3 className="text-size-1 font-black text-coffee-dark leading-snug">
+                        {offer.title}
+                      </h3>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-2xl font-black text-coffee-yellow block leading-none">
+                      {offer.discountText}
+                    </span>
+                    <span className="text-[11px] font-bold text-gray-500 mt-1 block">
+                      {offer.minOrder}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-size-1 text-gray-600 font-medium mb-6 line-clamp-2">
+                  {offer.desc}
+                </p>
+
+                {/* Dashed separator */}
+                <div className="border-t-2 border-dashed border-gray-200/80 my-3 relative">
+                  <div className="w-6 h-6 rounded-full bg-coffee-bg absolute -left-9 -top-3"></div>
+                  <div className="w-6 h-6 rounded-full bg-coffee-bg absolute -right-9 -top-3"></div>
+                </div>
+
+                {/* Bottom Actions */}
+                <div className="flex items-center justify-between gap-3 pt-2">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-bold text-gray-400">MÃ VOUCHER:</span>
+                    <span className="text-size-1 font-black text-coffee-green tracking-wider font-mono">
+                      {offer.code}
+                    </span>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => handleCopyCode(offer.code)}
+                      className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5 ${
+                        isCopied
+                          ? 'bg-emerald-600 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:scale-95'
+                      }`}
+                    >
+                      <i className={`fa-solid ${isCopied ? 'fa-check' : 'fa-copy'}`}></i>
+                      {isCopied ? 'Đã lưu' : 'Sao chép'}
+                    </button>
+                    <button
+                      onClick={() => navigate('/menu')}
+                      className="btn-primary px-4 py-2 text-xs font-black uppercase tracking-wider bg-coffee-green hover:bg-emerald-800 shadow-md active:scale-95"
+                    >
+                      Dùng Ngay
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-3 text-right">
+                  <span className="text-[10px] font-bold text-gray-400 italic">
+                    {offer.expiry}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : loading ? (
         <div className="text-center py-20">
           <i className="fa-solid fa-spinner animate-spin text-size-2 text-coffee-green mb-4"></i>
           <p className="text-size-1 font-bold text-gray-500">Đang tải lịch sử mua hàng...</p>

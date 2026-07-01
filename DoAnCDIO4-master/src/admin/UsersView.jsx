@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import { getMembershipRank } from '../utils/membershipUtils'
 
 const UsersView = ({ showNotify }) => {
   const [users, setUsers] = useState([])
@@ -36,7 +37,7 @@ const UsersView = ({ showNotify }) => {
           phone: u.SoDienThoai || 'Chưa có',
           email: u.Email || 'Chưa có',
           points: u.TongDiem || 0,
-          rank: u.hangthanhvien?.TenHang || 'Silver',
+          rank: getMembershipRank(u.TongDiem || 0).name,
           status: u.TrangThai || 'HoatDong'
         }))
         setUsers(mapped)

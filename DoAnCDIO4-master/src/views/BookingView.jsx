@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
+const TABLE_POSITIONS = [
+  { left: '38%', top: '22%' }, // Bàn 1 (Live Acoustic)
+  { left: '55%', top: '22%' }, // Bàn 2 (Live Acoustic)
+  { left: '82%', top: '25%' }, // Bàn 3 (VIP)
+  { left: '18%', top: '75%' }, // Bàn 4 (Góc Đọc Sách)
+  { left: '48%', top: '55%' }, // Bàn 5 (Chính giữa)
+  { left: '75%', top: '55%' }, // Bàn 6 (Chính giữa phải)
+  { left: '45%', top: '82%' }, // Bàn 7 (Sân vườn)
+  { left: '68%', top: '82%' }, // Bàn 8 (Sân vườn)
+  { left: '88%', top: '82%' }, // Bàn 9 (Sân vườn)
+]
+
 const BookingView = ({ user, showNotify, onRequireLogin }) => {
   const [selectedTable, setSelectedTable] = useState(null)
   const [tables, setTables] = useState([])
@@ -9,44 +21,59 @@ const BookingView = ({ user, showNotify, onRequireLogin }) => {
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    const fetchTables = async () => {
-      const isConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
-      if (!isConfigured) return
+  const fetchTables = async () => {
+    const isConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+    if (!isConfigured) return
 
-      try {
-        const { data, error } = await supabase
-          .from('ban')
-          .select('*')
-          .order('BanID')
+    try {
+      const { data, error } = await supabase
+        .from('ban')
+        .select('*')
+        .order('BanID')
 
-        if (error) throw error
-        if (data && data.length > 0) {
-          // Map DB tables to layout positions
-          const mapped = data.map((t, idx) => {
-            const layoutPreset = {
-              top: `${20 + Math.floor(idx / 3) * 30}%`,
-              left: `${20 + (idx % 3) * 30}%`,
-              type: t.SucChua > 4 ? 'rect' : 'round'
-            }
-            return {
-              id: t.BanID,
-              name: t.TenBan,
-              seats: t.SucChua,
-              type: layoutPreset.type,
-              top: layoutPreset.top,
-              left: layoutPreset.left,
-              locked: t.TrangThai !== 'Trong'
-            }
-          })
-          setTables(mapped)
-        }
-      } catch (err) {
-        console.error('Lỗi khi tải sơ đồ bàn:', err.message)
+      if (error) throw error
+      if (data && data.length > 0) {
+        // Map DB tables to layout positions
+        const mapped = data.map((t, idx) => {
+          const pos = TABLE_POSITIONS[idx % TABLE_POSITIONS.length] || { left: '50%', top: '50%' }
+          return {
+            id: t.BanID,
+            name: t.TenBan,
+            seats: t.SucChua,
+            type: t.SucChua > 4 ? 'rect' : 'round',
+            top: pos.top,
+            left: pos.left,
+            status: t.TrangThai,
+            locked: t.TrangThai !== 'Trong'
+          }
+        })
+        setTables(mapped)
       }
+    } catch (err) {
+      console.error('Lỗi khi tải sơ đồ bàn:', err.message)
     }
+  }
 
+  useEffect(() => {
     fetchTables()
+
+    const isConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+    if (!isConfigured) return
+
+    const channel = supabase
+      .channel('customer_ban_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'ban' },
+        () => {
+          fetchTables()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const renderChairs = (seats, type) => {
@@ -114,6 +141,12 @@ const BookingView = ({ user, showNotify, onRequireLogin }) => {
           })
 
         if (error) throw error
+
+        // Update table status to DaDat immediately to lock it in real-time
+        await supabase
+          .from('ban')
+          .update({ TrangThai: 'DaDat' })
+          .eq('BanID', selectedTable.id)
       }
 
       showNotify(`Đã gửi yêu cầu đặt ${selectedTable.name} thành công! Quán sẽ liên hệ sớm nhất.`)
@@ -142,15 +175,18 @@ const BookingView = ({ user, showNotify, onRequireLogin }) => {
             <h3 className="text-size-1 font-black uppercase tracking-widest text-coffee-dark">
               Sơ Đồ Không Gian
             </h3>
-            <div className="flex gap-4">
-              <span className="flex items-center gap-2 text-size-1 font-bold">
-                <div className="w-4 h-4 rounded-full border-2 border-gray-300 bg-white"></div> Trống
+            <div className="flex gap-3 flex-wrap">
+              <span className="flex items-center gap-1.5 text-size-1 font-bold">
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 bg-white"></div> Trống
               </span>
-              <span className="flex items-center gap-2 text-size-1 font-bold">
-                <div className="w-4 h-4 rounded-full bg-coffee-green border-2 border-coffee-green"></div> Đang chọn
+              <span className="flex items-center gap-1.5 text-size-1 font-bold">
+                <div className="w-3.5 h-3.5 rounded-full bg-coffee-green border-2 border-coffee-green"></div> Đang chọn
               </span>
-              <span className="flex items-center gap-2 text-size-1 font-bold">
-                <div className="w-4 h-4 rounded-full bg-gray-200 border-2 border-gray-300"></div> Đang bận
+              <span className="flex items-center gap-1.5 text-size-1 font-bold">
+                <div className="w-3.5 h-3.5 rounded-full bg-coffee-yellow border-2 border-coffee-yellow"></div> Đã đặt
+              </span>
+              <span className="flex items-center gap-1.5 text-size-1 font-bold">
+                <div className="w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500"></div> Đang dùng
               </span>
             </div>
           </div>
@@ -170,15 +206,31 @@ const BookingView = ({ user, showNotify, onRequireLogin }) => {
               <span className="text-size-1 font-black uppercase">Quầy Bar</span>
             </div>
 
-            <div className="absolute top-0 right-0 w-[35%] h-[45%] bg-yellow-100/50 rounded-bl-[2rem] border-l-2 border-b-2 border-dashed border-coffee-yellow flex items-start justify-end p-4">
-              <span className="text-size-1 font-black text-coffee-yellow uppercase opacity-80">
-                <i className="fa-solid fa-crown mr-1"></i> VIP
+            {/* Sân khấu Live Acoustic */}
+            <div className="absolute top-0 left-[27%] w-[36%] h-[32%] bg-rose-100/60 rounded-b-[2rem] border-b-2 border-l-2 border-r-2 border-dashed border-rose-500 flex flex-col items-center justify-start pt-2 sm:pt-3 z-0">
+              <span className="text-[0.65rem] sm:text-size-0 font-black text-rose-600 uppercase opacity-90 flex items-center gap-1.5">
+                <i className="fa-solid fa-guitar"></i> Live Acoustic
               </span>
             </div>
 
-            <div className="absolute bottom-0 right-0 left-[20%] h-[35%] bg-green-100/50 rounded-tl-[2rem] border-t-2 border-l-2 border-dashed border-coffee-green flex items-end justify-end p-4">
-              <span className="text-size-1 font-black text-coffee-green uppercase opacity-80">
-                <i className="fa-solid fa-tree mr-1"></i> Sân Vườn
+            {/* Khu VIP */}
+            <div className="absolute top-0 right-0 w-[35%] h-[45%] bg-yellow-100/50 rounded-bl-[2rem] border-l-2 border-b-2 border-dashed border-coffee-yellow flex items-start justify-end p-3 sm:p-4 z-0">
+              <span className="text-[0.65rem] sm:text-size-0 font-black text-coffee-yellow uppercase opacity-90 flex items-center gap-1.5">
+                <i className="fa-solid fa-crown"></i> VIP
+              </span>
+            </div>
+
+            {/* Góc Đọc Sách */}
+            <div className="absolute bottom-0 left-0 w-[32%] h-[45%] bg-amber-100/60 rounded-tr-[2rem] border-t-2 border-r-2 border-dashed border-amber-600 flex items-end justify-start p-3 sm:p-4 z-0">
+              <span className="text-[0.65rem] sm:text-size-0 font-black text-amber-700 uppercase opacity-90 flex items-center gap-1.5">
+                <i className="fa-solid fa-book-open"></i> Góc Đọc Sách
+              </span>
+            </div>
+
+            {/* Sân Vườn */}
+            <div className="absolute bottom-0 right-0 left-[35%] h-[38%] bg-green-100/50 rounded-tl-[2rem] border-t-2 border-l-2 border-dashed border-coffee-green flex items-end justify-end p-3 sm:p-4 z-0">
+              <span className="text-[0.65rem] sm:text-size-0 font-black text-coffee-green uppercase opacity-90 flex items-center gap-1.5">
+                <i className="fa-solid fa-tree"></i> Sân Vườn
               </span>
             </div>
 
@@ -194,8 +246,12 @@ const BookingView = ({ user, showNotify, onRequireLogin }) => {
               
               let stateClass =
                 'bg-white border-gray-300 text-gray-700 hover:border-coffee-green hover:shadow-md cursor-pointer'
-              if (t.locked) {
-                stateClass = 'bg-gray-200 border-gray-300 text-gray-400 opacity-60 cursor-not-allowed'
+              if (t.status === 'DangDung') {
+                stateClass = 'bg-red-500 border-red-500 text-white opacity-80 cursor-not-allowed'
+              } else if (t.status === 'DaDat') {
+                stateClass = 'bg-coffee-yellow border-coffee-yellow text-coffee-dark opacity-80 cursor-not-allowed'
+              } else if (t.status === 'BaoTri') {
+                stateClass = 'bg-gray-400 border-gray-400 text-white opacity-60 cursor-not-allowed'
               }
               if (isSelected) {
                 stateClass = 'bg-coffee-green border-coffee-green text-white shadow-lg scale-110 z-20'

@@ -46,11 +46,11 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-coffee-dark/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-      <div className="glass-effect p-8 rounded-[2.5rem] relative max-w-lg w-full max-h-[90vh] overflow-y-auto no-scrollbar shadow-2xl border border-white">
+    <div className="fixed inset-0 bg-coffee-dark/60 backdrop-blur-sm flex items-center justify-center z-[60] p-3 sm:p-4">
+      <div className="glass-effect p-5 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] relative max-w-lg w-full max-h-[85vh] overflow-y-auto no-scrollbar shadow-2xl border border-white">
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 btn-icon"
+          className="absolute top-4 right-4 sm:top-6 sm:right-6 btn-icon"
         >
           &times;
         </button>

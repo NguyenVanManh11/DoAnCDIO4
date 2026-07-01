@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import CustomDropdown from '../components/CustomDropdown'
 
 const VoucherView = ({ showNotify }) => {
   const [vouchers, setVouchers] = useState([])
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
+  const [editingVoucher, setEditingVoucher] = useState(null)
   const [formCode, setFormCode] = useState('')
   const [formType, setFormType] = useState('PhanTram')
   const [formValue, setFormValue] = useState(10)
@@ -36,44 +38,101 @@ const VoucherView = ({ showNotify }) => {
     fetchVouchers()
   }, [])
 
+  const openAddModal = () => {
+    setEditingVoucher(null)
+    setFormCode('')
+    setFormType('PhanTram')
+    setFormValue(10)
+    setFormMinOrder(50000)
+    setFormQty(100)
+    setShowModal(true)
+  }
+
+  const openEditModal = (v) => {
+    setEditingVoucher(v)
+    setFormCode(v.MaVoucher)
+    setFormType(v.LoaiGiamGia)
+    setFormValue(v.GiaTriGiam)
+    setFormMinOrder(v.DonHangToiThieu)
+    setFormQty(v.SoLuong)
+    setShowModal(true)
+  }
+
+  const handleDeleteVoucher = async (vId, code) => {
+    if (!window.confirm(`Bạn có chắc muốn xóa voucher "${code}"?`)) return
+    if (isConfigured) {
+      try {
+        await supabase.from('voucher').update({ DaXoa: true }).eq('VoucherID', vId)
+      } catch (err) {
+        console.error('Lỗi xóa voucher DB:', err.message)
+      }
+    }
+    setVouchers(prev => prev.filter(v => v.VoucherID !== vId))
+    showNotify(`Đã xóa voucher: ${code}`)
+  }
+
   const handleSaveVoucher = async (e) => {
     e.preventDefault()
-    if (!isConfigured) {
-      setVouchers(prev => [{
+
+    if (editingVoucher) {
+      if (isConfigured) {
+        try {
+          await supabase.from('voucher').update({
+            MaVoucher: formCode,
+            LoaiGiamGia: formType,
+            GiaTriGiam: formValue,
+            DonHangToiThieu: formMinOrder,
+            SoLuong: formQty
+          }).eq('VoucherID', editingVoucher.VoucherID)
+        } catch (err) {
+          console.error('Lỗi khi cập nhật voucher DB:', err.message)
+        }
+      }
+      setVouchers(prev => prev.map(v => v.VoucherID === editingVoucher.VoucherID ? {
+        ...v,
+        MaVoucher: formCode,
+        LoaiGiamGia: formType,
+        GiaTriGiam: Number(formValue),
+        DonHangToiThieu: Number(formMinOrder),
+        SoLuong: Number(formQty)
+      } : v))
+      setShowModal(false)
+      showNotify(`Đã cập nhật voucher: ${formCode}`)
+    } else {
+      let newVoucher = {
         VoucherID: Date.now(),
         MaVoucher: formCode,
         LoaiGiamGia: formType,
-        GiaTriGiam: formValue,
-        DonHangToiThieu: formMinOrder,
-        SoLuong: formQty,
+        GiaTriGiam: Number(formValue),
+        DonHangToiThieu: Number(formMinOrder),
+        SoLuong: Number(formQty),
         TrangThai: 'HoatDong'
-      }, ...prev])
+      }
+
+      if (isConfigured) {
+        try {
+          const { data, error } = await supabase
+            .from('voucher')
+            .insert({
+              MaVoucher: formCode,
+              LoaiGiamGia: formType,
+              GiaTriGiam: Number(formValue),
+              DonHangToiThieu: Number(formMinOrder),
+              SoLuong: Number(formQty),
+              TrangThai: 'HoatDong'
+            })
+            .select()
+            .single()
+
+          if (!error && data) newVoucher = data
+        } catch (err) {
+          console.error('Lỗi khi thêm voucher DB:', err.message)
+        }
+      }
+
+      setVouchers(prev => [newVoucher, ...prev])
       setShowModal(false)
       showNotify('Thêm voucher thành công!')
-      return
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('voucher')
-        .insert({
-          MaVoucher: formCode,
-          LoaiGiamGia: formType,
-          GiaTriGiam: formValue,
-          DonHangToiThieu: formMinOrder,
-          SoLuong: formQty,
-          TrangThai: 'HoatDong'
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-      setVouchers(prev => [data, ...prev])
-      setShowModal(false)
-      showNotify('Thêm voucher thành công!')
-    } catch (err) {
-      console.error('Lỗi khi thêm voucher:', err.message)
-      alert('Không thể thêm voucher. Mã voucher có thể bị trùng.')
     }
   }
 
@@ -88,7 +147,7 @@ const VoucherView = ({ showNotify }) => {
             Phát hành và theo dõi Voucher
           </p>
         </div>
-        <button className="btn-primary py-2.5 px-5 text-size-0 whitespace-nowrap" onClick={() => setShowModal(true)}>
+        <button className="btn-primary py-2.5 px-5 text-size-0 whitespace-nowrap" onClick={openAddModal}>
           <i className="fa-solid fa-ticket"></i> Thêm Voucher
         </button>
       </div>
@@ -122,9 +181,17 @@ const VoucherView = ({ showNotify }) => {
                   <td className="py-4 text-gray-600 text-size-1">{parseFloat(v.DonHangToiThieu).toLocaleString()}đ</td>
                   <td className="py-4 text-gray-600 text-size-1">{v.SoLuong}</td>
                   <td className="py-4 pr-4 text-right">
-                    <span className={`text-[0.7rem] font-black uppercase px-2 py-1 rounded-full border ${v.TrangThai === 'HoatDong' ? 'text-green-600 bg-green-50 border-green-100' : 'text-gray-500 bg-gray-50 border-gray-200'}`}>
-                      {v.TrangThai}
-                    </span>
+                    <div className="flex items-center justify-end gap-2">
+                      <span className={`text-[0.7rem] font-black uppercase px-2 py-1 rounded-full border ${v.TrangThai === 'HoatDong' ? 'text-green-600 bg-green-50 border-green-100' : 'text-gray-500 bg-gray-50 border-gray-200'}`}>
+                        {v.TrangThai}
+                      </span>
+                      <button onClick={() => openEditModal(v)} className="btn-icon" title="Sửa">
+                        <i className="fa-solid fa-pen text-size-0"></i>
+                      </button>
+                      <button onClick={() => handleDeleteVoucher(v.VoucherID, v.MaVoucher)} className="btn-icon text-red-500 hover:bg-red-500 hover:text-white" title="Xóa">
+                        <i className="fa-solid fa-trash text-size-0"></i>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -142,7 +209,9 @@ const VoucherView = ({ showNotify }) => {
         <div className="fixed inset-0 bg-coffee-dark/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="glass-effect p-8 rounded-[2.5rem] relative max-w-md w-full shadow-2xl border border-white animate-fade-in max-h-[90vh] overflow-y-auto no-scrollbar">
             <button onClick={() => setShowModal(false)} className="absolute top-6 right-6 btn-icon">&times;</button>
-            <h3 className="text-size-2 font-black text-coffee-green uppercase mb-6 tracking-tighter text-center">Thêm Voucher</h3>
+            <h3 className="text-size-2 font-black text-coffee-green uppercase mb-6 tracking-tighter text-center">
+              {editingVoucher ? 'Sửa Voucher' : 'Thêm Voucher'}
+            </h3>
             <form onSubmit={handleSaveVoucher} className="space-y-4">
               <div>
                 <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Mã Khuyến Mãi</label>
@@ -150,10 +219,15 @@ const VoucherView = ({ showNotify }) => {
               </div>
               <div>
                 <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Loại Giảm Giá</label>
-                <select value={formType} onChange={(e) => setFormType(e.target.value)} className="w-full py-2.5 px-4 rounded-2xl bg-white/80 border border-gray-200 text-size-1 font-bold outline-none appearance-none">
-                  <option value="PhanTram">Phần Trăm (%)</option>
-                  <option value="TienMat">Tiền Mặt (VNĐ)</option>
-                </select>
+                <CustomDropdown
+                  options={[
+                    { value: 'PhanTram', label: 'Phần Trăm (%)', icon: 'fa-percent', color: 'bg-amber-100 text-amber-800' },
+                    { value: 'TienMat', label: 'Tiền Mặt (VNĐ)', icon: 'fa-money-bill', color: 'bg-emerald-100 text-emerald-800' }
+                  ]}
+                  value={formType}
+                  onChange={(val) => setFormType(val)}
+                  placeholder="Chọn loại giảm giá"
+                />
               </div>
               <div>
                 <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Mức Giảm</label>
@@ -167,7 +241,9 @@ const VoucherView = ({ showNotify }) => {
                 <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Số Lượng</label>
                 <input type="number" required value={formQty} onChange={(e) => setFormQty(Number(e.target.value))} className="w-full py-2.5 px-4 rounded-2xl bg-white/80 border border-gray-200 text-size-1 font-bold outline-none" placeholder="100" />
               </div>
-              <button type="submit" className="w-full btn-primary py-3 mt-4 text-size-1">Tạo Voucher</button>
+              <button type="submit" className="w-full btn-primary py-3 mt-4 text-size-1">
+                {editingVoucher ? 'Cập Nhật Voucher' : 'Tạo Voucher'}
+              </button>
             </form>
           </div>
         </div>
