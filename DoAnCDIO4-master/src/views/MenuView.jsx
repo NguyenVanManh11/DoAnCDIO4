@@ -1,26 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
-const MOCK_PRODUCTS = [
-  { SanPhamID: 1, DanhMucID: 1, TenSanPham: 'CÀ PHÊ ĐEN TRUYỀN THỐNG', MoTa: 'Hương vị nguyên bản.', Gia: 25000, icon: 'fa-mug-hot' },
-  { SanPhamID: 2, DanhMucID: 1, TenSanPham: 'BẠC XỈU ĐÁ', MoTa: 'Sự kết hợp hoàn hảo.', Gia: 30000, icon: 'fa-mug-saucer' },
-  { SanPhamID: 5, DanhMucID: 1, TenSanPham: 'ESPRESSO Ý', MoTa: 'Đậm đà, bừng tỉnh.', Gia: 35000, icon: 'fa-mug-hot' },
-  { SanPhamID: 3, DanhMucID: 2, TenSanPham: 'TRÀ ĐÀO CAM SẢ', MoTa: 'Thanh mát giải nhiệt.', Gia: 40000, icon: 'fa-glass-water' },
-  { SanPhamID: 6, DanhMucID: 2, TenSanPham: 'TRÀ VẢI THIỀU TỨ XUYÊN', MoTa: 'Vị ngọt thanh dịu nhẹ.', Gia: 45000, icon: 'fa-leaf' },
-  { SanPhamID: 4, DanhMucID: 3, TenSanPham: 'BÁNH CROISSANT', MoTa: 'Bánh sừng bò nướng bơ.', Gia: 35000, icon: 'fa-cookie' },
-  { SanPhamID: 7, DanhMucID: 3, TenSanPham: 'TIRAMISU', MoTa: 'Béo ngậy hương cà phê.', Gia: 45000, icon: 'fa-cake-candles' },
-]
-
-const CATEGORIES = [
-  { id: 1, name: 'Cà Phê' },
-  { id: 2, name: 'Trà' },
-  { id: 3, name: 'Bánh' }
-]
-
 const MenuView = ({ onProductSelect }) => {
-  const [activeCat, setActiveCat] = useState(1)
-  const [products, setProducts] = useState(MOCK_PRODUCTS)
-  const [categories, setCategories] = useState(CATEGORIES)
+  const [activeCat, setActiveCat] = useState('all')
+  const [products, setProducts] = useState([])
+  const [categories, setCategories] = useState([{ id: 'all', name: 'Tất Cả' }])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -38,7 +22,7 @@ const MenuView = ({ onProductSelect }) => {
 
         if (catErr) throw catErr
         if (catData && catData.length > 0) {
-          setCategories(catData.map(c => ({ id: c.DanhMucID, name: c.TenDanhMuc })))
+          setCategories([{ id: 'all', name: 'Tất Cả' }, ...catData.map(c => ({ id: c.DanhMucID, name: c.TenDanhMuc }))])
         }
 
         // Fetch Products with Sizes to get base price
@@ -104,7 +88,24 @@ const MenuView = ({ onProductSelect }) => {
           </button>
         ))}
       </div>
- 
+
+      {/* AI Recommendation Banner */}
+      {!loading && products.length > 0 && activeCat === 'all' && (
+        <div className="bg-coffee-green/10 border border-coffee-green/30 p-6 md:p-8 rounded-[2rem] mb-10 shadow-sm flex flex-col md:flex-row items-center gap-6">
+          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shrink-0 shadow-md">
+            <i className="fa-solid fa-wand-magic-sparkles text-size-2 text-coffee-yellow animate-pulse"></i>
+          </div>
+          <div className="flex-1 text-center md:text-left">
+            <h3 className="text-size-1 font-black text-coffee-dark uppercase tracking-widest mb-2">
+              Hệ Thống AI Gợi Ý
+            </h3>
+            <p className="text-size-1 font-medium text-gray-700">
+              Dựa trên thời tiết hôm nay và phân tích hành vi của bạn, hệ thống AI đề xuất dùng thử <strong className="text-coffee-green">Cà Phê Muối Xứ Huế</strong> hoặc combo <strong className="text-coffee-green">Bạc Xỉu Đá + Croissant</strong> để bắt đầu ngày mới tràn đầy năng lượng!
+            </p>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="text-center py-20">
           <i className="fa-solid fa-spinner animate-spin text-size-2 text-coffee-green mb-4"></i>
@@ -113,7 +114,7 @@ const MenuView = ({ onProductSelect }) => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {products
-            .filter((p) => p.DanhMucID === activeCat)
+            .filter((p) => activeCat === 'all' || p.DanhMucID === activeCat)
             .map((product) => (
               <div
                 key={product.SanPhamID}

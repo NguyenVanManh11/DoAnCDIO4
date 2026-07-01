@@ -5,8 +5,8 @@ const VOUCHERS = [
   { code: 'GIAM10K', discount: 10000, type: 'TienMat' }
 ]
 
-const CartPanel = ({ isOpen, onClose, cart, removeFromCart, checkout, user }) => {
-  const [orderType, setOrderType] = useState('Tại Quán')
+const CartPanel = ({ isOpen, onClose, cart, removeFromCart, checkout, user, tableParam }) => {
+  const [orderType, setOrderType] = useState(tableParam ? 'Tại Quán' : 'Tại Quán')
   const [voucher, setVoucher] = useState('')
   const [discount, setDiscount] = useState(0)
   const [phone, setPhone] = useState('')
@@ -62,13 +62,14 @@ const CartPanel = ({ isOpen, onClose, cart, removeFromCart, checkout, user }) =>
           .insert({
             MaDonHang: orderCode,
             KhachHangID: user.NguoiDungID,
+            BanID: (tableParam && orderType === 'Tại Quán') ? parseInt(tableParam) : null,
             TongTien: subTotal,
             GiamGia: userDiscountAmount + discount,
             ThanhTien: finalTotal,
             PhuongThucThanhToan: orderType === 'Giao Hàng' ? 'ChuyenKhoan' : 'TienMat',
             TrangThai: 'ChoXacNhan',
             LoaiDonHangID: loaiDonHangId,
-            GhiChu: orderType === 'Giao Hàng' ? `SĐT: ${phone}. Địa chỉ: ${address}` : 'Đặt tại quầy'
+            GhiChu: orderType === 'Giao Hàng' ? `SĐT: ${phone}. Địa chỉ: ${address}` : (tableParam ? `Quét QR từ Bàn ${tableParam}` : 'Đặt tại quầy')
           })
           .select()
           .single()

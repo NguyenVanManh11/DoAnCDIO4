@@ -22,21 +22,26 @@ import AdminLayout from './admin/AdminLayout'
 function App() {
   const location = useLocation()
   const navigate = useNavigate()
+  
+  // Extract table ID if accessed via QR Code
+  const queryParams = new URLSearchParams(location.search)
+  const tableParam = queryParams.get('table')
 
   // App States
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('coffee_client_user')
+    const saved = localStorage.getItem('coffee_user')
     return saved ? JSON.parse(saved) : null
   })
   const [cart, setCart] = useState([])
   const [cartOpen, setCartOpen] = useState(false)
   const [authModalOpen, setAuthModalOpen] = useState(false)
+  const [authModalMode, setAuthModalMode] = useState('login')
   const [selectedProduct, setSelectedProduct] = useState(null)
-  
+
   // Review Modal triggers
   const [activeReview, setActiveReview] = useState(null) // { order, item }
   const [reviews, setReviews] = useState({}) // Key: orderCode-productId, value: {rating, comment}
-  
+
   // Global Notification Banner
   const [notification, setNotification] = useState('')
 
@@ -47,19 +52,30 @@ function App() {
 
   const handleLogin = (loggedUser) => {
     setUser(loggedUser)
-    localStorage.setItem('coffee_client_user', JSON.stringify(loggedUser))
+    localStorage.setItem('coffee_user', JSON.stringify(loggedUser))
     setAuthModalOpen(false)
     showNotify(`Chào mừng quay trở lại, ${loggedUser.HoTen}!`)
-    
-    // Redirect if it's an admin logging in
-    if ([1, 2].includes(loggedUser.VaiTroID)) {
+
+    // Redirect if it's an admin/staff logging in
+    if ([1, 2, 3, 4, 5].includes(loggedUser.VaiTroID)) {
       navigate('/admin')
     }
   }
 
+  // Protect specific routes from guests
+  useEffect(() => {
+    const isProtectedRoute = ['/history', '/profile'].includes(location.pathname)
+    if (!user && isProtectedRoute) {
+      navigate('/')
+      setAuthModalMode('login')
+      setAuthModalOpen(true)
+      showNotify('Vui lòng đăng nhập để sử dụng tính năng này!')
+    }
+  }, [user, location.pathname, navigate])
+
   const handleLogout = () => {
     setUser(null)
-    localStorage.removeItem('coffee_client_user')
+    localStorage.removeItem('coffee_user')
     showNotify('Đã đăng xuất tài khoản!')
     navigate('/')
   }
@@ -91,14 +107,14 @@ function App() {
   const handleCheckout = (totalAmount, orderType, deliveryInfo) => {
     setCart([])
     setCartOpen(false)
-    
+
     let completionMessage = `Đặt đơn ${deliveryInfo.code} thành công! Giá trị: ${totalAmount.toLocaleString()}đ.`
     if (orderType === 'Giao Hàng') {
       completionMessage += ` Đồ uống sẽ được giao tới SĐT: ${deliveryInfo.phone}.`
     } else {
       completionMessage += ' Vui lòng chờ nhận món tại quầy bar.'
     }
-    
+
     showNotify(completionMessage)
     navigate('/history')
   }
@@ -118,7 +134,7 @@ function App() {
   if (isAdminRoute) {
     return (
       <Routes>
-        <Route path="/admin/*" element={<AdminLayout />} />
+        <Route path="/admin/*" element={<AdminLayout onLogout={handleLogout} />} />
       </Routes>
     )
   }
@@ -141,6 +157,7 @@ function App() {
         setCartOpen={setCartOpen}
         user={user}
         setAuthModalOpen={setAuthModalOpen}
+        setAuthModalMode={setAuthModalMode}
         onLogout={handleLogout}
       />
 
@@ -178,7 +195,11 @@ function App() {
 
       {/* Modals & Sidebar Panels */}
       {authModalOpen && (
-        <AuthModal onClose={() => setAuthModalOpen(false)} onLogin={handleLogin} />
+        <AuthModal 
+          onClose={() => setAuthModalOpen(false)} 
+          onLogin={handleLogin} 
+          initialMode={authModalMode}
+        />
       )}
 
       {selectedProduct && (
@@ -206,6 +227,7 @@ function App() {
         removeFromCart={removeFromCart}
         checkout={handleCheckout}
         user={user}
+        tableParam={tableParam}
       />
     </div>
   )

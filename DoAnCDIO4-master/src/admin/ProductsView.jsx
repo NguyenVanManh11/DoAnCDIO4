@@ -1,22 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
-const INITIAL_PRODUCTS = [
-  { id: 1, categoryId: 1, name: 'CÀ PHÊ ĐEN TRUYỀN THỐNG', desc: 'Hương vị nguyên bản.', price: 25000, icon: 'fa-mug-hot' },
-  { id: 2, categoryId: 1, name: 'BẠC XỈU ĐÁ', desc: 'Sự kết hợp hoàn hảo.', price: 30000, icon: 'fa-mug-saucer' },
-  { id: 3, categoryId: 2, name: 'TRÀ ĐÀO CAM SẢ', desc: 'Thanh mát giải nhiệt.', price: 40000, icon: 'fa-glass-water' },
-  { id: 4, categoryId: 3, name: 'BÁNH CROISSANT', desc: 'Bánh sừng bò nướng bơ.', price: 35000, icon: 'fa-cookie' }
-]
-
-const CATEGORIES = [
-  { id: 1, name: 'Cà Phê' },
-  { id: 2, name: 'Trà' },
-  { id: 3, name: 'Bánh' }
-]
-
 const ProductsView = ({ showNotify }) => {
-  const [products, setProducts] = useState(INITIAL_PRODUCTS)
+  const [products, setProducts] = useState([])
+  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)
+  const [filterCat, setFilterCat] = useState('all')
   const [editingProduct, setEditingProduct] = useState(null)
   const [showModal, setShowModal] = useState(false)
 
@@ -33,6 +22,9 @@ const ProductsView = ({ showNotify }) => {
 
     setLoading(true)
     try {
+      const { data: catData } = await supabase.from('danhmuc').select('DanhMucID, TenDanhMuc').eq('DaXoa', false)
+      if (catData) setCategories(catData.map(c => ({ id: c.DanhMucID, name: c.TenDanhMuc })))
+
       const { data, error } = await supabase
         .from('sanpham')
         .select(`
@@ -216,7 +208,7 @@ const ProductsView = ({ showNotify }) => {
 
   return (
     <div className="p-6 md:p-8 h-full overflow-y-auto no-scrollbar flex flex-col gap-6 animate-fade-in">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
         <div>
           <h2 className="text-size-2 font-black uppercase text-coffee-dark tracking-tighter mb-1">
             Danh Mục Sản Phẩm
@@ -227,10 +219,37 @@ const ProductsView = ({ showNotify }) => {
         </div>
         <button
           onClick={openAddModal}
-          className="btn-primary py-2.5 px-5 text-size-0"
+          className="btn-primary py-2.5 px-5 text-size-0 whitespace-nowrap"
         >
           <i className="fa-solid fa-plus"></i> Thêm sản phẩm
         </button>
+      </div>
+
+      {/* Category Filters */}
+      <div className="flex gap-2 bg-white/60 p-1.5 rounded-full shadow-inner border border-white/80 overflow-x-auto no-scrollbar w-max max-w-full shrink-0">
+        <button
+          onClick={() => setFilterCat('all')}
+          className={`px-5 py-2 text-size-1 font-bold rounded-full transition-all duration-300 hover:scale-105 active:scale-95 uppercase whitespace-nowrap ${
+            filterCat === 'all'
+              ? 'bg-gradient-to-r from-coffee-green to-emerald-800 text-white shadow-md shadow-coffee-green/15'
+              : 'text-gray-600 hover:bg-white/80 hover:text-coffee-green'
+          }`}
+        >
+          Tất cả
+        </button>
+        {categories.map(c => (
+          <button
+            key={c.id}
+            onClick={() => setFilterCat(c.id)}
+            className={`px-5 py-2 text-size-1 font-bold rounded-full transition-all duration-300 hover:scale-105 active:scale-95 uppercase whitespace-nowrap ${
+              filterCat === c.id
+                ? 'bg-gradient-to-r from-coffee-green to-emerald-800 text-white shadow-md shadow-coffee-green/15'
+                : 'text-gray-600 hover:bg-white/80 hover:text-coffee-green'
+            }`}
+          >
+            {c.name}
+          </button>
+        ))}
       </div>
 
       {loading ? (
@@ -240,7 +259,7 @@ const ProductsView = ({ showNotify }) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {products.map(p => (
+          {products.filter(p => filterCat === 'all' || p.categoryId === filterCat).map(p => (
             <div key={p.id} className="glass-effect p-5 rounded-[2rem] border border-white flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-4 min-w-0">
                 <div className="w-12 h-12 rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-coffee-green text-size-1 shrink-0 shadow-sm">
@@ -249,7 +268,7 @@ const ProductsView = ({ showNotify }) => {
                 <div className="min-w-0">
                   <h3 className="text-size-1 font-black text-coffee-dark truncate">{p.name}</h3>
                   <span className="text-[0.65rem] font-bold text-gray-400 uppercase tracking-wider block">
-                    {CATEGORIES.find(c => c.id === p.categoryId)?.name || 'Khác'}
+                    {categories.find(c => c.id === p.categoryId)?.name || 'Khác'}
                   </span>
                   <span className="text-size-0 font-black text-coffee-green block mt-1">
                     {p.price.toLocaleString()}đ
@@ -280,7 +299,7 @@ const ProductsView = ({ showNotify }) => {
       {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-coffee-dark/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="glass-effect p-8 rounded-[2.5rem] relative max-w-md w-full shadow-2xl border border-white animate-fade-in">
+          <div className="glass-effect p-8 rounded-[2.5rem] relative max-w-md w-full shadow-2xl border border-white animate-fade-in max-h-[90vh] overflow-y-auto no-scrollbar">
             <button
               onClick={() => setShowModal(false)}
               className="absolute top-6 right-6 btn-icon"
@@ -312,7 +331,7 @@ const ProductsView = ({ showNotify }) => {
                   onChange={(e) => setFormCategory(e.target.value)}
                   className="w-full py-2.5 px-4 rounded-2xl bg-white/80 border border-gray-200 text-size-1 font-bold outline-none appearance-none"
                 >
-                  {CATEGORIES.map(c => (
+                  {categories.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>

@@ -1,35 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
-const MOCK_ORDERS = [
-  {
-    id: '#DH1002',
-    id_db: 1001,
-    time: 'Hôm qua',
-    type: 'Tại quán',
-    total: 85000,
-    status: 'Hoàn thành',
-    items: [
-      { SanPhamID: 1, TenSanPham: 'CÀ PHÊ ĐEN TRUYỀN THỐNG', icon: 'fa-mug-hot' },
-      { SanPhamID: 4, TenSanPham: 'BÁNH CROISSANT', icon: 'fa-cookie' }
-    ]
-  },
-  {
-    id: '#DH0981',
-    id_db: 1002,
-    time: '20/05/2026',
-    type: 'Giao hàng',
-    total: 120000,
-    status: 'Hoàn thành',
-    items: [
-      { SanPhamID: 2, TenSanPham: 'BẠC XỈU ĐÁ', icon: 'fa-mug-saucer' },
-      { SanPhamID: 7, TenSanPham: 'TIRAMISU', icon: 'fa-cake-candles' }
-    ]
-  }
-]
-
 const HistoryView = ({ user, reviews, onOpenReview }) => {
-  const [orders, setOrders] = useState(MOCK_ORDERS)
+  const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(false)
   const [dbReviews, setDbReviews] = useState({})
 

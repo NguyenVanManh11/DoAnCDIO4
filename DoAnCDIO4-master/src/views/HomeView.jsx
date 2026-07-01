@@ -18,7 +18,8 @@ const HomeView = () => {
 
       <div className="glass-effect p-8 md:p-12 rounded-[3rem] shadow-2xl mt-8 w-full border border-white">
         <h1 className="text-size-2 md:text-[4rem] font-black uppercase text-coffee-green tracking-tighter mb-6 leading-none">
-          A JOURNEY<br />THROUGH HISTORY
+          <span className="block mb-2 md:mb-4">A JOURNEY</span>
+          <span className="block">THROUGH HISTORY</span>
         </h1>
         <p className="text-size-1 font-medium text-gray-600 max-w-3xl mx-auto leading-relaxed mb-8 text-justify md:text-center">
           Khởi nguồn của cà phê bắt đầu từ nhiều thế kỷ trước tại cao nguyên Ethiopia. Kể từ đó, cà phê đã vượt qua các đại dương và đế chế, trở thành thức uống được yêu thích trên toàn thế giới. Quán cà phê trở thành trung tâm giao lưu văn hóa, ảnh hưởng đến những cuộc trò chuyện, chính trị và nghệ thuật.
@@ -43,7 +44,7 @@ const HomeView = () => {
         <h2 className="text-size-2 font-black text-coffee-dark uppercase mb-8 text-center tracking-tighter">
           Không Gian Của Chúng Tôi
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {features.map((f, idx) => (
             <div
               key={idx}
@@ -55,6 +56,46 @@ const HomeView = () => {
               <h3 className="text-size-1 font-black text-coffee-dark uppercase">{f.t}</h3>
             </div>
           ))}
+        </div>
+
+        {/* Image Gallery & Intro Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16 glass-effect p-8 md:p-12 rounded-[3rem] border border-white">
+          <div className="space-y-6">
+            <h2 className="text-[2.5rem] font-black text-coffee-green uppercase tracking-tighter leading-tight">
+              Nơi Lưu Giữ <br /> Từng Khoảnh Khắc
+            </h2>
+            <p className="text-size-1 text-gray-600 font-medium leading-relaxed text-justify">
+              Với thiết kế hòa quyện giữa nét hoài cổ và không gian mở hiện đại, Heritage Coffee mang đến một trải nghiệm thưởng thức cà phê độc đáo. Từng góc nhỏ tại quán đều được chăm chút tỉ mỉ, từ ánh đèn vàng ấm áp đến những mảng xanh dịu mát của cây cỏ.
+            </p>
+            <p className="text-size-1 text-gray-600 font-medium leading-relaxed text-justify">
+              Dù bạn cần một góc yên tĩnh để làm việc, một không gian lãng mạn cho buổi hẹn hò, hay góc sống ảo cực chất cùng bạn bè, Heritage luôn sẵn sàng chào đón bạn.
+            </p>
+            <button
+              onClick={() => navigate('/booking')}
+              className="btn-primary px-8 py-3.5 text-size-1 tracking-widest mt-4 inline-flex items-center gap-2"
+            >
+              Trải Nghiệm Ngay <i className="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-4 h-[400px]">
+            <div className="space-y-4 h-full">
+              <div className="h-[60%] rounded-3xl overflow-hidden shadow-lg group">
+                <img src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=600&q=80" alt="Cafe interior" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+              </div>
+              <div className="h-[35%] rounded-3xl overflow-hidden shadow-lg group">
+                <img src="https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=600&q=80" alt="Coffee brewing" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+              </div>
+            </div>
+            <div className="space-y-4 h-full pt-8">
+              <div className="h-[45%] rounded-3xl overflow-hidden shadow-lg group">
+                <img src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=600&q=80" alt="Coffee shop" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+              </div>
+              <div className="h-[50%] rounded-3xl overflow-hidden shadow-lg group relative">
+                <img src="https://images.unsplash.com/photo-1445116572658-2207407a4a9b?auto=format&fit=crop&w=600&q=80" alt="Coffee art" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </main>

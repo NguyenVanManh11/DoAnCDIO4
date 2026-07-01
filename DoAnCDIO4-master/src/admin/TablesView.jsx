@@ -1,24 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
-const INITIAL_TABLES = [
-  { id: 1, name: 'Bàn 1', seats: 2, type: 'round', top: '15%', left: '35%', status: 'Trong' },
-  { id: 2, name: 'Bàn 2', seats: 2, type: 'round', top: '15%', left: '55%', status: 'DangDung' },
-  { id: 3, name: 'Bàn 3', seats: 4, type: 'rect', top: '50%', left: '25%', status: 'Trong' },
-  { id: 4, name: 'Bàn 4', seats: 4, type: 'rect', top: '50%', left: '50%', status: 'DaDat' },
-  { id: 5, name: 'VIP 1', seats: 6, type: 'rect', top: '25%', left: '80%', status: 'Trong' },
-  { id: 6, name: 'Bàn 5', seats: 4, type: 'round', top: '80%', left: '30%', status: 'Trong' },
-  { id: 7, name: 'Bàn 6', seats: 4, type: 'rect', top: '80%', left: '60%', status: 'Trong' },
-  { id: 8, name: 'Bàn 7', seats: 4, type: 'rect', top: '80%', left: '85%', status: 'Trong' }
-]
-
-const MOCK_BOOKINGS = [
-  { id: 201, name: 'Nguyễn Văn Khách', phone: '0987654321', tableName: 'Bàn 4', tableId: 4, time: '28/06/2026 - 19:30', status: 'ChoXacNhan', note: 'Sinh nhật khách VIP' }
-]
-
 const TablesView = ({ showNotify }) => {
-  const [tables, setTables] = useState(INITIAL_TABLES)
-  const [bookings, setBookings] = useState(MOCK_BOOKINGS)
+  const [tables, setTables] = useState([])
+  const [bookings, setBookings] = useState([])
   const [loadingBookings, setLoadingBookings] = useState(false)
   const [selectedTable, setSelectedTable] = useState(null)
 
@@ -37,7 +22,7 @@ const TablesView = ({ showNotify }) => {
       if (tableErr) throw tableErr
       if (tableData) {
         const mapped = tableData.map((t, idx) => {
-          const layoutPreset = INITIAL_TABLES[idx] || {
+          const layoutPreset = {
             top: `${20 + Math.floor(idx / 3) * 30}%`,
             left: `${20 + (idx % 3) * 30}%`,
             type: t.SucChua > 4 ? 'rect' : 'round'
@@ -210,7 +195,7 @@ const TablesView = ({ showNotify }) => {
 
   return (
     <div className="p-6 md:p-8 h-full overflow-y-auto no-scrollbar flex flex-col gap-6 animate-fade-in">
-      <div>
+      <div className="shrink-0">
         <h2 className="text-size-2 font-black uppercase text-coffee-dark tracking-tighter mb-1">
           Sơ Đồ & Đặt Bàn
         </h2>
@@ -287,6 +272,13 @@ const TablesView = ({ showNotify }) => {
                     </button>
                   )
                 })}
+                <button
+                  onClick={() => showNotify(`QR Code Đặt Món Bàn ${selectedTable.id} (Tính năng đang phát triển)`)}
+                  className="px-3 py-1.5 rounded-full text-size-0 font-bold bg-purple-50 border border-purple-200 text-purple-600 hover:bg-purple-600 hover:text-white transition-all shadow-sm"
+                  title="Tạo QR Order cho khách tự quét gọi món"
+                >
+                  <i className="fa-solid fa-qrcode"></i> QR Order
+                </button>
                 <button
                   onClick={() => setSelectedTable(null)}
                   className="btn-secondary px-3 py-1.5 text-size-0"

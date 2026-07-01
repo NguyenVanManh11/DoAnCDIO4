@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
-const MOCK_USERS = [
-  { id: 1, name: 'Nguyễn Văn Khách', username: 'khachhang', phone: '0987654321', email: 'customer@coffee.com', points: 1250, rank: 'Gold', status: 'HoatDong' },
-  { id: 3, name: 'Trần Văn Khách', username: 'tran_khach', phone: '0981234567', email: 'tran@coffee.com', points: 450, rank: 'Silver', status: 'HoatDong' },
-  { id: 4, name: 'Lê Thị Khách', username: 'le_khach', phone: '0909998887', email: 'le@coffee.com', points: 5200, rank: 'Diamond', status: 'BiKhoa' }
-]
-
 const UsersView = ({ showNotify }) => {
-  const [users, setUsers] = useState(MOCK_USERS)
+  const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(false)
 
   const fetchUsers = async () => {
@@ -86,7 +80,7 @@ const UsersView = ({ showNotify }) => {
 
   return (
     <div className="p-6 md:p-8 h-full overflow-y-auto no-scrollbar flex flex-col gap-6 animate-fade-in">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center shrink-0">
         <div>
           <h2 className="text-size-2 font-black uppercase text-coffee-dark tracking-tighter mb-1">
             Quản Lý Khách Hàng

@@ -10,11 +10,15 @@ import ProductsView from './ProductsView'
 import UsersView from './UsersView'
 import ReportsView from './ReportsView'
 import SettingsView from './SettingsView'
+import VoucherView from './VoucherView'
+import InventoryView from './InventoryView'
+import StaffView from './StaffView'
+import RecipeView from './RecipeView'
 
-const AdminLayout = () => {
+const AdminLayout = ({ onLogout }) => {
   const navigate = useNavigate()
   const [admin, setAdmin] = useState(() => {
-    const saved = localStorage.getItem('coffee_admin_user')
+    const saved = localStorage.getItem('coffee_user')
     return saved ? JSON.parse(saved) : null
   })
   
@@ -38,21 +42,25 @@ const AdminLayout = () => {
 
   const handleLogin = (adminUser) => {
     setAdmin(adminUser)
-    localStorage.setItem('coffee_admin_user', JSON.stringify(adminUser))
+    localStorage.setItem('coffee_user', JSON.stringify(adminUser))
     showNotify(`Xin chào admin: ${adminUser.HoTen}!`)
   }
 
   const handleLogout = () => {
     setAdmin(null)
-    localStorage.removeItem('coffee_admin_user')
-    navigate('/')
+    if (onLogout) {
+      onLogout()
+    } else {
+      localStorage.removeItem('coffee_user')
+      window.location.href = '/'
+    }
   }
 
-  if (!admin) {
+  if (!admin || ![1, 2, 3, 4, 5].includes(admin.VaiTroID)) {
     return (
       <div className="relative w-full h-screen overflow-hidden">
         <div className="bg-grid-pattern fixed inset-0 -z-20"></div>
-        <AuthModal onClose={() => navigate('/')} onLogin={handleLogin} isAdminMode={true} />
+        <AuthModal onClose={() => window.location.href = '/'} onLogin={handleLogin} isAdminMode={true} />
       </div>
     )
   }
@@ -62,6 +70,10 @@ const AdminLayout = () => {
     { id: 'orders', icon: 'fa-receipt', label: 'Đơn Hàng' },
     { id: 'tables', icon: 'fa-chair', label: 'Sơ Đồ Bàn' },
     { id: 'products', icon: 'fa-box', label: 'Sản Phẩm' },
+    { id: 'inventory', icon: 'fa-warehouse', label: 'Kho Hàng' },
+    { id: 'recipes', icon: 'fa-flask', label: 'Định Lượng' },
+    { id: 'vouchers', icon: 'fa-ticket', label: 'Khuyến Mãi' },
+    { id: 'staff', icon: 'fa-user-tie', label: 'Nhân Sự' },
     { id: 'users', icon: 'fa-users', label: 'Khách Hàng' },
     { id: 'reports', icon: 'fa-chart-column', label: 'Báo Cáo' },
     { id: 'settings', icon: 'fa-gear', label: 'Cài Đặt' },
@@ -75,7 +87,7 @@ const AdminLayout = () => {
         
         {/* Sidebar */}
         <div className="w-full md:w-64 glass-effect border-r border-white/50 flex flex-col shrink-0 h-auto md:h-full md:rounded-l-[2.5rem] z-20">
-          <div className="p-6 flex items-center gap-3 border-b border-white/50 cursor-pointer" onClick={() => navigate('/')}>
+          <div className="p-6 flex items-center gap-3 border-b border-white/50 cursor-pointer" onClick={() => window.location.href = '/'}>
             <div className="w-10 h-10 bg-coffee-green rounded-xl flex items-center justify-center text-white shadow-sm shrink-0">
               <i className="fa-solid fa-seedling text-size-1"></i>
             </div>
@@ -135,12 +147,16 @@ const AdminLayout = () => {
           )}
 
           <div className="flex-1 overflow-hidden relative">
-            {activeTab === 'dashboard' && <DashboardView />}
-            {activeTab === 'orders' && <OrdersView showNotify={showNotify} />}
-            {activeTab === 'tables' && <TablesView showNotify={showNotify} />}
-            {activeTab === 'products' && <ProductsView showNotify={showNotify} />}
-            {activeTab === 'users' && <UsersView showNotify={showNotify} />}
-            {activeTab === 'reports' && <ReportsView />}
+            { activeTab === 'dashboard' && <DashboardView /> }
+            { activeTab === 'orders' && <OrdersView showNotify={showNotify} /> }
+            { activeTab === 'tables' && <TablesView showNotify={showNotify} /> }
+            { activeTab === 'products' && <ProductsView showNotify={showNotify} /> }
+            { activeTab === 'inventory' && <InventoryView showNotify={showNotify} /> }
+            { activeTab === 'recipes' && <RecipeView showNotify={showNotify} /> }
+            { activeTab === 'vouchers' && <VoucherView showNotify={showNotify} /> }
+            { activeTab === 'staff' && <StaffView showNotify={showNotify} /> }
+            { activeTab === 'users' && <UsersView showNotify={showNotify} /> }
+            { activeTab === 'reports' && <ReportsView /> }
             {activeTab === 'settings' && (
               <SettingsView 
                 globalScale={globalScale} 

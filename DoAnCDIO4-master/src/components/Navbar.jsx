@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 
-const Navbar = ({ cartCount, setCartOpen, user, setAuthModalOpen, onLogout }) => {
+const Navbar = ({ cartCount, setCartOpen, user, setAuthModalOpen, setAuthModalMode, onLogout }) => {
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -26,7 +26,7 @@ const Navbar = ({ cartCount, setCartOpen, user, setAuthModalOpen, onLogout }) =>
   ]
 
   return (
-    <nav className="flex flex-col md:flex-row justify-between items-center py-4 px-6 md:px-12 bg-white/60 backdrop-blur-md border-b border-coffee-grid/30 sticky top-0 z-30 gap-4 transition-all duration-300">
+    <nav className="flex flex-col md:flex-row justify-between items-center py-4 px-6 md:px-12 bg-white/95 backdrop-blur-md border-b-2 border-coffee-green/20 sticky top-0 z-30 gap-4 transition-all duration-300 shadow-sm">
       {/* Logo */}
       <div 
         className="flex items-center space-x-2 cursor-pointer hover:scale-105 active:scale-95 transition-all duration-300" 
@@ -39,7 +39,7 @@ const Navbar = ({ cartCount, setCartOpen, user, setAuthModalOpen, onLogout }) =>
       </div>
       
       {/* Navigation tabs */}
-      <div className="flex items-center space-x-1 bg-white/60 p-1.5 rounded-full shadow-inner border border-white/80 overflow-x-auto no-scrollbar w-full md:w-auto">
+      <div className="flex items-center space-x-1 bg-gray-100/80 p-1.5 rounded-full shadow-inner border border-gray-200/50 overflow-x-auto no-scrollbar w-full md:w-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -55,8 +55,18 @@ const Navbar = ({ cartCount, setCartOpen, user, setAuthModalOpen, onLogout }) =>
         ))}
       </div>
  
-      {/* Cart & Profile Button */}
+      {/* Admin Button, Cart & Profile Button */}
       <div className="flex gap-2">
+        {user && [1, 2, 3, 4, 5].includes(user.VaiTroID) && (
+          <button
+            onClick={() => window.location.href = '/admin'}
+            className="text-size-1 font-bold bg-gradient-to-r from-red-500 to-rose-600 text-white px-5 py-2.5 rounded-full hover:scale-105 hover:shadow-lg hover:shadow-red-500/30 active:scale-95 transition-all duration-300 shadow-sm flex items-center gap-2 uppercase whitespace-nowrap"
+            title="Về trang quản trị"
+          >
+            <i className="fa-solid fa-shield-halved"></i> Quản Trị
+          </button>
+        )}
+
         <button
           onClick={() => setCartOpen(true)}
           className="text-size-1 font-bold bg-white text-coffee-dark border border-coffee-grid/40 px-5 py-2.5 rounded-full hover:bg-coffee-green hover:text-white hover:border-coffee-green hover:scale-105 active:scale-95 transition-all duration-300 shadow-sm flex items-center gap-2 uppercase"
@@ -72,12 +82,20 @@ const Navbar = ({ cartCount, setCartOpen, user, setAuthModalOpen, onLogout }) =>
             <i className="fa-solid fa-user text-coffee-yellow"></i> {user.HoTen.split(' ').pop()}
           </button>
         ) : (
-          <button
-            onClick={() => setAuthModalOpen(true)}
-            className="text-size-1 font-bold bg-gradient-to-r from-coffee-yellow to-amber-500 text-coffee-dark px-5 py-2.5 rounded-full hover:scale-105 hover:shadow-lg hover:shadow-coffee-yellow/20 active:scale-95 transition-all duration-300 uppercase"
-          >
-            Đăng Nhập
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setAuthModalMode('register'); setAuthModalOpen(true); }}
+              className="text-size-1 font-bold bg-white text-coffee-green border border-coffee-grid/40 px-5 py-2.5 rounded-full hover:bg-gray-50 hover:scale-105 active:scale-95 transition-all duration-300 uppercase shadow-sm hidden md:block"
+            >
+              Đăng Ký
+            </button>
+            <button
+              onClick={() => { setAuthModalMode('login'); setAuthModalOpen(true); }}
+              className="text-size-1 font-bold bg-gradient-to-r from-coffee-yellow to-amber-500 text-coffee-dark px-5 py-2.5 rounded-full hover:scale-105 hover:shadow-lg hover:shadow-coffee-yellow/20 active:scale-95 transition-all duration-300 uppercase"
+            >
+              Đăng Nhập
+            </button>
+          </div>
         )}
       </div>
     </nav>

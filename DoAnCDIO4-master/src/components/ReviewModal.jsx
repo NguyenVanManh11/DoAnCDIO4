@@ -51,7 +51,7 @@ const ReviewModal = ({ order, item, onClose, onSubmit, user }) => {
 
   return (
     <div className="fixed inset-0 bg-coffee-dark/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
-      <div className="glass-effect p-8 rounded-[2.5rem] relative max-w-md w-full shadow-2xl border border-white">
+      <div className="glass-effect p-8 rounded-[2.5rem] relative max-w-md w-full shadow-2xl border border-white max-h-[90vh] overflow-y-auto no-scrollbar">
         <button
           onClick={onClose}
           className="absolute top-6 right-6 btn-icon"

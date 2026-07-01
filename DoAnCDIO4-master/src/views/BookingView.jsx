@@ -1,20 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
-const INITIAL_TABLES = [
-  { id: 1, name: 'Bàn 1', seats: 2, type: 'round', top: '15%', left: '35%', locked: false },
-  { id: 2, name: 'Bàn 2', seats: 2, type: 'round', top: '15%', left: '55%', locked: true },
-  { id: 3, name: 'Bàn 3', seats: 4, type: 'rect', top: '50%', left: '25%', locked: false },
-  { id: 4, name: 'Bàn 4', seats: 4, type: 'rect', top: '50%', left: '50%', locked: true },
-  { id: 5, name: 'VIP 1', seats: 6, type: 'rect', top: '25%', left: '80%', locked: false },
-  { id: 6, name: 'Bàn 5', seats: 4, type: 'round', top: '80%', left: '30%', locked: false },
-  { id: 7, name: 'Bàn 6', seats: 4, type: 'rect', top: '80%', left: '60%', locked: false },
-  { id: 8, name: 'Bàn 7', seats: 4, type: 'rect', top: '80%', left: '85%', locked: false }
-]
-
 const BookingView = ({ user, showNotify, onRequireLogin }) => {
   const [selectedTable, setSelectedTable] = useState(null)
-  const [tables, setTables] = useState(INITIAL_TABLES)
+  const [tables, setTables] = useState([])
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [note, setNote] = useState('')
@@ -35,7 +24,7 @@ const BookingView = ({ user, showNotify, onRequireLogin }) => {
         if (data && data.length > 0) {
           // Map DB tables to layout positions
           const mapped = data.map((t, idx) => {
-            const layoutPreset = INITIAL_TABLES[idx] || {
+            const layoutPreset = {
               top: `${20 + Math.floor(idx / 3) * 30}%`,
               left: `${20 + (idx % 3) * 30}%`,
               type: t.SucChua > 4 ? 'rect' : 'round'

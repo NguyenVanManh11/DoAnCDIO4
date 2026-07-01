@@ -91,7 +91,7 @@ const ReportsView = () => {
 
   return (
     <div className="p-6 md:p-8 h-full overflow-y-auto no-scrollbar flex flex-col gap-6 animate-fade-in">
-      <div>
+      <div className="shrink-0">
         <h2 className="text-size-2 font-black uppercase text-coffee-dark tracking-tighter mb-1">
           Báo Cáo Doanh Thu
         </h2>

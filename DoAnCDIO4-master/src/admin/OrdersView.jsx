@@ -1,13 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
-const MOCK_ORDERS = [
-  { id: '#DH1002', id_db: 1001, name: 'Nguyễn Văn Khách', items: '2x Cà phê đen, 1x Croissant', total: 85000, status: 'Hoàn thành', note: 'Đặt tại quầy' },
-  { id: '#DH0981', id_db: 1002, name: 'Trần Văn Khách', items: '2x Bạc xỉu, 1x Tiramisu', total: 120000, status: 'Hoàn thành', note: 'SĐT: 0981234567. Giao tới chung cư Q.3' },
-  { id: '#DH1005', id_db: 1003, name: 'Phạm Thị Khách', items: '1x Trà đào cam sả', total: 40000, status: 'Đang pha chế', note: 'SĐT: 0905555666. Giao tới Q.1' },
-  { id: '#DH1006', id_db: 1004, name: 'Nguyễn Văn Khách', items: '2x Bạc xỉu đá', total: 60000, status: 'Chờ xác nhận', note: 'Đặt tại quầy' }
-]
-
 const FILTER_TABS = [
   { id: 'Tất cả', label: 'Tất cả' },
   { id: 'Chờ xác nhận', label: 'Chờ xác nhận' },
@@ -18,7 +11,7 @@ const FILTER_TABS = [
 ]
 
 const OrdersView = ({ showNotify }) => {
-  const [orders, setOrders] = useState(MOCK_ORDERS)
+  const [orders, setOrders] = useState([])
   const [filter, setFilter] = useState('Tất cả')
   const [loading, setLoading] = useState(false)
 
@@ -118,7 +111,7 @@ const OrdersView = ({ showNotify }) => {
 
   return (
     <div className="p-6 md:p-8 h-full overflow-y-auto no-scrollbar flex flex-col gap-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
         <div>
           <h2 className="text-size-2 font-black uppercase text-coffee-dark tracking-tighter mb-1">
             Quản Lý Đơn Hàng
@@ -136,7 +129,7 @@ const OrdersView = ({ showNotify }) => {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 bg-white/60 p-1.5 rounded-full shadow-inner border border-white/80 overflow-x-auto no-scrollbar w-max max-w-full">
+      <div className="flex gap-2 bg-white/60 p-1.5 rounded-full shadow-inner border border-white/80 overflow-x-auto no-scrollbar w-max max-w-full shrink-0">
         {FILTER_TABS.map(tab => (
           <button
             key={tab.id}
