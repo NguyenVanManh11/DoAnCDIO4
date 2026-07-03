@@ -64,6 +64,24 @@ const MenuView = ({ onProductSelect }) => {
     }
 
     fetchMenuData()
+
+    const isConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+    if (!isConfigured) return
+
+    const channel = supabase
+      .channel('public:sanpham')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sanpham' },
+        () => {
+          fetchMenuData()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   return (

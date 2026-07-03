@@ -21,12 +21,12 @@ const HomeView = () => {
       <div className="absolute top-10 left-[10%] text-coffee-yellow text-size-2 opacity-80 animate-pulse">✨</div>
       <div className="absolute bottom-20 right-[10%] text-coffee-yellow text-size-2 opacity-80 animate-pulse">✨</div>
 
-      <div className="glass-effect p-8 md:p-12 rounded-[3rem] shadow-2xl mt-8 w-full border border-white">
+      <div className="glass-effect p-8 md:p-12 rounded-[3rem] shadow-2xl mt-8 w-full border border-white dark:border-slate-800">
         <h1 className="text-size-2 md:text-[4rem] font-black uppercase text-coffee-green tracking-tighter mb-6 leading-none">
           <span className="block mb-2 md:mb-4">A JOURNEY</span>
           <span className="block">THROUGH HISTORY</span>
         </h1>
-        <p className="text-size-1 font-medium text-gray-600 max-w-3xl mx-auto leading-relaxed mb-8 text-justify md:text-center">
+        <p className="text-size-1 font-medium text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed mb-8 text-justify md:text-center">
           Khởi nguồn của cà phê bắt đầu từ nhiều thế kỷ trước tại cao nguyên Ethiopia. Kể từ đó, cà phê đã vượt qua các đại dương và đế chế, trở thành thức uống được yêu thích trên toàn thế giới. Quán cà phê trở thành trung tâm giao lưu văn hóa, ảnh hưởng đến những cuộc trò chuyện, chính trị và nghệ thuật.
         </p>
         <div className="flex gap-4 flex-wrap justify-center mt-2">
@@ -46,7 +46,7 @@ const HomeView = () => {
       </div>
 
       <div className="mt-16 w-full text-left">
-        <h2 className="text-size-2 font-black text-coffee-dark uppercase mb-8 text-center tracking-tighter">
+        <h2 className="text-size-2 font-black text-coffee-dark dark:text-emerald-400 uppercase mb-8 text-center tracking-tighter">
           Không Gian Của Chúng Tôi
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
@@ -54,12 +54,12 @@ const HomeView = () => {
             <div
               key={idx}
               onClick={() => navigate('/features')}
-              className="glass-effect p-6 rounded-[2rem] text-center hover:scale-105 hover:shadow-2xl transition-all duration-300 group border border-white cursor-pointer relative"
+              className="glass-effect p-6 rounded-[2rem] text-center hover:scale-105 hover:shadow-2xl transition-all duration-300 group border border-white dark:border-slate-800 cursor-pointer relative"
             >
-              <div className="w-16 h-16 bg-white rounded-full mx-auto mb-4 flex items-center justify-center text-size-2 text-coffee-green group-hover:bg-coffee-green group-hover:text-white group-hover:scale-110 transition-all duration-300 shadow-sm">
+              <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-full mx-auto mb-4 flex items-center justify-center text-size-2 text-coffee-green dark:text-emerald-400 group-hover:bg-coffee-green dark:group-hover:bg-emerald-600 group-hover:text-white dark:group-hover:text-white group-hover:scale-110 transition-all duration-300 shadow-sm">
                 <i className={`fa-solid ${f.i}`}></i>
               </div>
-              <h3 className="text-size-1 font-black text-coffee-dark uppercase">{f.t}</h3>
+              <h3 className="text-size-1 font-black text-coffee-dark dark:text-gray-100 uppercase">{f.t}</h3>
               <p className="text-xs text-coffee-green font-bold mt-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                 Khám phá chi tiết <i className="fa-solid fa-arrow-right text-[10px]"></i>
               </p>
@@ -68,15 +68,15 @@ const HomeView = () => {
         </div>
 
         {/* Image Gallery & Intro Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16 glass-effect p-8 md:p-12 rounded-[3rem] border border-white">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16 glass-effect p-8 md:p-12 rounded-[3rem] border border-white dark:border-slate-800">
           <div className="space-y-6">
             <h2 className="text-[2.5rem] font-black text-coffee-green uppercase tracking-tighter leading-tight">
               Nơi Lưu Giữ <br /> Từng Khoảnh Khắc
             </h2>
-            <p className="text-size-1 text-gray-600 font-medium leading-relaxed text-justify">
+            <p className="text-size-1 text-gray-600 dark:text-gray-300 font-medium leading-relaxed text-justify">
               Với thiết kế hòa quyện giữa nét hoài cổ và không gian mở hiện đại, Heritage Coffee mang đến một trải nghiệm thưởng thức cà phê độc đáo. Từng góc nhỏ tại quán đều được chăm chút tỉ mỉ, từ ánh đèn vàng ấm áp đến những mảng xanh dịu mát của cây cỏ.
             </p>
-            <p className="text-size-1 text-gray-600 font-medium leading-relaxed text-justify">
+            <p className="text-size-1 text-gray-600 dark:text-gray-300 font-medium leading-relaxed text-justify">
               Dù bạn cần một góc yên tĩnh để làm việc, một không gian lãng mạn cho buổi hẹn hò, hay góc sống ảo cực chất cùng bạn bè, Heritage luôn sẵn sàng chào đón bạn.
             </p>
             <button

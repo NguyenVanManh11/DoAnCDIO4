@@ -124,8 +124,8 @@ const TablesView = ({ showNotify }) => {
             name: t.TenBan,
             seats: t.SucChua,
             type: t.SucChua > 4 ? 'rect' : 'round',
-            top: pos.top,
-            left: pos.left,
+            top: t.ToaDoY || pos.top,
+            left: t.ToaDoX || pos.left,
             status: t.TrangThai // 'Trong', 'DangDung', 'DaDat', 'BaoTri'
           }
         })
@@ -319,10 +319,10 @@ const TablesView = ({ showNotify }) => {
     <div className="p-6 md:p-8 h-full overflow-y-auto no-scrollbar flex flex-col gap-6 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
         <div>
-          <h2 className="text-size-2 font-black uppercase text-coffee-dark tracking-tighter mb-1">
+          <h2 className="text-size-2 font-black uppercase text-coffee-dark dark:text-emerald-400 tracking-tighter mb-1">
             Sơ Đồ & Đặt Bàn
           </h2>
-          <p className="text-size-0 font-bold text-gray-500 uppercase tracking-widest">
+          <p className="text-size-0 font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
             Quản lý không gian quán và phê duyệt đặt bàn
           </p>
         </div>
@@ -333,12 +333,44 @@ const TablesView = ({ showNotify }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Map Layout */}
-        <div className="lg:col-span-2 glass-effect p-6 rounded-[2rem] border border-white shadow-md relative">
-          <h3 className="text-size-1 font-black uppercase tracking-widest text-coffee-dark mb-4 pl-2">
+        <div className="lg:col-span-2 glass-effect p-6 rounded-[2rem] border border-white dark:border-slate-800 shadow-md relative">
+          <h3 className="text-size-1 font-black uppercase tracking-widest text-coffee-dark dark:text-gray-100 mb-4 pl-2">
             Mặt Bằng Cửa Hàng
           </h3>
           
-          <div className="relative w-full aspect-[4/3] md:aspect-[16/9] bg-white/50 rounded-[2rem] border-2 border-dashed border-gray-300 overflow-hidden shadow-inner">
+          <div 
+            className="relative w-full aspect-[4/3] md:aspect-[16/9] bg-white/50 dark:bg-slate-800/50 rounded-[2rem] border-2 border-dashed border-gray-300 dark:border-slate-600 overflow-hidden shadow-inner"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={async (e) => {
+              e.preventDefault()
+              const tableId = e.dataTransfer.getData('tableId')
+              if (!tableId) return
+              
+              const rect = e.currentTarget.getBoundingClientRect()
+              const x = e.clientX - rect.left
+              const y = e.clientY - rect.top
+              
+              const leftPercent = Math.max(5, Math.min(95, (x / rect.width) * 100))
+              const topPercent = Math.max(5, Math.min(95, (y / rect.height) * 100))
+              
+              const newLeft = `${leftPercent.toFixed(2)}%`
+              const newTop = `${topPercent.toFixed(2)}%`
+
+              setTables(prev => prev.map(t => t.id.toString() === tableId ? { ...t, left: newLeft, top: newTop } : t))
+              
+              const isConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+              if (isConfigured) {
+                try {
+                  await supabase.from('ban').update({
+                    ToaDoX: newLeft,
+                    ToaDoY: newTop
+                  }).eq('BanID', tableId)
+                } catch (err) {
+                  console.error('Lỗi lưu toạ độ:', err.message)
+                }
+              }
+            }}
+          >
             <div
               className="absolute inset-0"
               style={{
@@ -391,7 +423,7 @@ const TablesView = ({ showNotify }) => {
                   ? 'w-16 h-10 md:w-24 md:h-14'
                   : 'w-12 h-10 md:w-16 md:h-14'
 
-              let stateColor = 'bg-white border-gray-300 text-gray-700'
+              let stateColor = 'bg-white border-gray-300 text-gray-700 dark:bg-slate-700 dark:border-slate-500 dark:text-gray-200'
               if (t.status === 'DangDung') stateColor = 'bg-red-500 border-red-500 text-white'
               if (t.status === 'DaDat') stateColor = 'bg-coffee-yellow border-coffee-yellow text-coffee-dark'
               if (t.status === 'BaoTri') stateColor = 'bg-gray-400 border-gray-400 text-white'
@@ -400,8 +432,12 @@ const TablesView = ({ showNotify }) => {
               return (
                 <div
                   key={t.id}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('tableId', t.id.toString())
+                  }}
                   onClick={() => setSelectedTable(t)}
-                  className={`absolute flex items-center justify-center border-2 transition-all duration-300 cursor-pointer shadow-sm hover:scale-105 ${baseClass} ${sizeClass} ${stateColor}`}
+                  className={`absolute flex items-center justify-center border-2 transition-all duration-300 cursor-move shadow-sm hover:scale-105 ${baseClass} ${sizeClass} ${stateColor}`}
                   style={{ top: t.top, left: t.left, transform: 'translate(-50%, -50%)' }}
                 >
                   <span className="text-[0.6rem] md:text-[0.8rem] font-black z-10 leading-none text-center">
@@ -415,8 +451,8 @@ const TablesView = ({ showNotify }) => {
 
           {/* Quick status edit overlay */}
           {selectedTable && (
-            <div className="mt-4 p-4 bg-white/90 rounded-2xl border border-gray-100 flex items-center justify-between flex-wrap gap-3 animate-fade-in shadow-inner">
-              <span className="text-size-1 font-black text-coffee-dark">
+            <div className="mt-4 p-4 bg-white/90 dark:bg-slate-800/90 rounded-2xl border border-gray-100 dark:border-slate-700 flex items-center justify-between flex-wrap gap-3 animate-fade-in shadow-inner">
+              <span className="text-size-1 font-black text-coffee-dark dark:text-gray-100">
                 Thiết lập {selectedTable.name}:
               </span>
               <div className="flex gap-2">
@@ -466,8 +502,8 @@ const TablesView = ({ showNotify }) => {
         </div>
 
         {/* Bookings Queue */}
-        <div className="glass-effect p-6 rounded-[2rem] border border-white shadow-md flex flex-col h-full">
-          <h3 className="text-size-1 font-black uppercase tracking-widest text-coffee-dark mb-4">
+        <div className="glass-effect p-6 rounded-[2rem] border border-white dark:border-slate-800 shadow-md flex flex-col h-full">
+          <h3 className="text-size-1 font-black uppercase tracking-widest text-coffee-dark dark:text-gray-100 mb-4">
             Đơn Đặt Chỗ
           </h3>
 
@@ -478,9 +514,9 @@ const TablesView = ({ showNotify }) => {
               <p className="text-center py-6 text-size-1 font-bold text-gray-400">Không có đơn đặt bàn nào.</p>
             ) : (
               bookings.map((book, idx) => (
-                <div key={idx} className="bg-white/70 p-4 rounded-2xl border border-gray-100 space-y-2 text-size-0 font-medium">
+                <div key={idx} className="bg-white/70 dark:bg-slate-800/70 p-4 rounded-2xl border border-gray-100 dark:border-slate-700 space-y-2 text-size-0 font-medium">
                   <div className="flex justify-between items-center">
-                    <span className="text-size-1 font-black text-coffee-dark">{book.name}</span>
+                    <span className="text-size-1 font-black text-coffee-dark dark:text-gray-100">{book.name}</span>
                     <span className={`text-[0.65rem] font-black uppercase px-2 py-0.5 rounded-full border ${
                       book.status === 'DaXacNhan'
                         ? 'text-green-600 bg-green-50 border-green-100'
@@ -491,9 +527,9 @@ const TablesView = ({ showNotify }) => {
                       {book.status === 'ChoXacNhan' ? 'Chờ duyệt' : book.status === 'DaXacNhan' ? 'Đã duyệt' : 'Đã hủy'}
                     </span>
                   </div>
-                  <p className="text-gray-600">SĐT: {book.phone}</p>
-                  <p className="text-gray-600">Bàn: <span className="font-bold text-coffee-green">{book.tableName}</span></p>
-                  <p className="text-gray-600">Thời gian: {book.time}</p>
+                  <p className="text-gray-600 dark:text-gray-300">SĐT: {book.phone}</p>
+                  <p className="text-gray-600 dark:text-gray-300">Bàn: <span className="font-bold text-coffee-green dark:text-emerald-400">{book.tableName}</span></p>
+                  <p className="text-gray-600 dark:text-gray-300">Thời gian: {book.time}</p>
                   <p className="text-gray-400">Ghi chú: {book.note}</p>
                   
                   {book.status === 'ChoXacNhan' && (
@@ -521,18 +557,18 @@ const TablesView = ({ showNotify }) => {
 
       {showModal && (
         <div className="fixed inset-0 bg-coffee-dark/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="glass-effect p-8 rounded-[2.5rem] relative max-w-md w-full shadow-2xl border border-white animate-fade-in max-h-[90vh] overflow-y-auto no-scrollbar">
+          <div className="glass-effect p-8 rounded-[2.5rem] relative max-w-md w-full shadow-2xl border border-white dark:border-slate-800 animate-fade-in max-h-[90vh] overflow-y-auto no-scrollbar">
             <button onClick={() => setShowModal(false)} className="absolute top-6 right-6 btn-icon">&times;</button>
-            <h3 className="text-size-2 font-black text-coffee-green uppercase mb-6 tracking-tighter text-center">
+            <h3 className="text-size-2 font-black text-coffee-green dark:text-emerald-400 uppercase mb-6 tracking-tighter text-center">
               {editingTable ? 'Sửa Thông Tin Bàn' : 'Thêm Bàn Mới'}
             </h3>
             <form onSubmit={handleSaveTable} className="space-y-4">
               <div>
-                <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Tên Bàn</label>
-                <input type="text" required value={formName} onChange={(e) => setFormName(e.target.value)} className="w-full py-2.5 px-4 rounded-2xl bg-white/80 border border-gray-200 text-size-1 font-bold outline-none" placeholder="VD: Bàn 10" />
+                <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tên Bàn</label>
+                <input type="text" required value={formName} onChange={(e) => setFormName(e.target.value)} className="w-full py-2.5 px-4 rounded-2xl bg-white/80 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-size-1 font-bold outline-none" placeholder="VD: Bàn 10" />
               </div>
               <div>
-                <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Sức Chứa</label>
+                <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sức Chứa</label>
                 <CustomDropdown
                   options={[
                     { value: 2, label: '2 Người (Bàn nhỏ)', icon: 'fa-user', color: 'bg-amber-100 text-amber-800' },
@@ -547,7 +583,7 @@ const TablesView = ({ showNotify }) => {
                 />
               </div>
               <div>
-                <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Trạng Thái</label>
+                <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 dark:text-gray-400 uppercase tracking-wider">Trạng Thái</label>
                 <CustomDropdown
                   options={[
                     { value: 'Trong', label: 'Trống', icon: 'fa-check-circle', color: 'bg-green-100 text-green-800' },

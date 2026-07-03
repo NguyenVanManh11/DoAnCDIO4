@@ -80,6 +80,10 @@ const AuthModal = ({ onClose, onLogin, isAdminMode = false, initialMode = 'login
           if (dbError) throw dbError
 
           if (data) {
+            if (data.TrangThai === 'BiKhoa') {
+              throw new Error('Tài khoản của bạn đã bị khóa, vui lòng liên hệ hỗ trợ!')
+            }
+
             const rankInfo = getMembershipRank(data.TongDiem || 0)
             const userObj = {
               NguoiDungID: data.NguoiDungID,

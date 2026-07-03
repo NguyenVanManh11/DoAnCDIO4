@@ -189,9 +189,17 @@ const HistoryView = ({ user, reviews, onOpenReview, showNotify }) => {
       .channel(`customer_history_realtime_${user.NguoiDungID}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'donhang', filter: `KhachHangID=eq.${user.NguoiDungID}` },
-        () => {
+        { event: 'UPDATE', schema: 'public', table: 'donhang', filter: `KhachHangID=eq.${user.NguoiDungID}` },
+        (payload) => {
+          if (showNotify) showNotify(`🔔 Đơn hàng #${payload.new.DonHangID} của bạn vừa được cập nhật trạng thái!`)
           fetchHistoryAndReviews()
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'donhang', filter: `KhachHangID=eq.${user.NguoiDungID}` },
+        () => {
+          setTimeout(() => fetchHistoryAndReviews(), 1500)
         }
       )
       .subscribe()
@@ -366,9 +374,63 @@ const HistoryView = ({ user, reviews, onOpenReview, showNotify }) => {
                   <p className="text-size-2 font-black text-coffee-green leading-none">
                     {order.total.toLocaleString()}đ
                   </p>
-                  <p className="text-size-1 font-bold text-green-600 bg-green-50 px-4 py-1 rounded-full inline-block mt-2 border border-green-100">
-                    {order.status}
-                  </p>
+                  <div className="mt-2 flex flex-col items-end gap-2">
+                    <p className={`text-size-1 font-bold px-4 py-1 rounded-full border ${
+                      order.status === 'Hoàn thành'
+                        ? 'text-green-600 bg-green-50 border-green-100'
+                        : order.status === 'Đang pha chế'
+                        ? 'text-blue-500 bg-blue-50 border-blue-100'
+                        : order.status === 'Đang giao hàng'
+                        ? 'text-purple-500 bg-purple-50 border-purple-100'
+                        : order.status === 'Đã hủy'
+                        ? 'text-red-500 bg-red-50 border-red-100'
+                        : 'text-amber-500 bg-amber-50 border-amber-100'
+                    }`}>
+                      {order.status}
+                    </p>
+                    {order.type === 'Giao hàng' && order.status === 'Đang giao hàng' && (
+                      <button 
+                        onClick={async () => {
+                          if (!window.confirm('Bạn xác nhận đã nhận được đơn hàng này?')) return;
+                          try {
+                            const { error } = await supabase
+                              .from('donhang')
+                              .update({ TrangThai: 'HoanThanh' })
+                              .eq('DonHangID', order.id_db);
+                            if (error) throw error;
+                            
+                            // Calculate and add points
+                            const { getMembershipRank, calculateOrderPoints } = await import('../utils/membershipUtils');
+                            const earnedPoints = calculateOrderPoints(order.total);
+                            const newPoints = (user.TongDiem || 0) + earnedPoints;
+                            const newRank = getMembershipRank(newPoints);
+                            
+                            await supabase
+                              .from('nguoidung')
+                              .update({ TongDiem: newPoints, HangThanhVienID: newRank.id })
+                              .eq('NguoiDungID', user.NguoiDungID);
+                              
+                            if (showNotify) showNotify(`Cảm ơn bạn! Bạn được cộng +${earnedPoints} điểm.`);
+                            if (onUpdateUser) {
+                              onUpdateUser({
+                                ...user,
+                                TongDiem: newPoints,
+                                HangThanhVienID: newRank.id,
+                                TenHang: newRank.name,
+                                GiamGia: newRank.discount
+                              });
+                            }
+                          } catch (err) {
+                            console.error('Lỗi khi xác nhận nhận hàng:', err.message);
+                            if (showNotify) showNotify('Có lỗi xảy ra, vui lòng thử lại.');
+                          }
+                        }}
+                        className="btn-primary px-4 py-1 text-size-0 bg-gradient-to-r from-blue-500 to-indigo-600 border-none shadow-sm hover:shadow-md"
+                      >
+                        Đã Nhận Hàng
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
               

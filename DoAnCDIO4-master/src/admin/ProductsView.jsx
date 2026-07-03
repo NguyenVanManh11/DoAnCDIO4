@@ -63,6 +63,24 @@ const ProductsView = ({ showNotify }) => {
 
   useEffect(() => {
     fetchProducts()
+
+    const isConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+    if (!isConfigured) return
+
+    const channel = supabase
+      .channel('admin_sanpham_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sanpham' },
+        () => {
+          fetchProducts()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const openAddModal = () => {

@@ -86,7 +86,22 @@ const OrdersView = ({ showNotify }) => {
       .channel('admin_donhang_realtime')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'donhang' },
+        { event: 'INSERT', schema: 'public', table: 'donhang' },
+        () => {
+          // Đợi 1.5s để client lưu xong các dòng chitietdonhang
+          setTimeout(() => fetchOrders(), 1500)
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'donhang' },
+        () => {
+          fetchOrders()
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'donhang' },
         () => {
           fetchOrders()
         }
