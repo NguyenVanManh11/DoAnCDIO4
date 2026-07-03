@@ -68,6 +68,11 @@
   background-size: 50px 50px;
 }
 
+html.dark .bg-grid-pattern {
+  background-color: transparent;
+  background-image: none;
+}
+
 /* Hiệu ứng kính mờ (Glassmorphism) */
 .glass-effect {
   background: rgba(255, 255, 255, 0.65);
@@ -75,6 +80,12 @@
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: 0 8px 32px 0 rgba(59, 44, 37, 0.04);
+}
+
+html.dark .glass-effect {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
 /* Ràng buộc kích cỡ chữ hệ thống */
@@ -149,3 +160,72 @@
 .bar-chart-fill {
   transition: width 1s ease-in-out;
 }
+
+/* Dark Mode Styles & Overrides */
+html.dark body {
+  background-color: #0b0c10;
+  background-image: 
+    radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 4px),
+    radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px),
+    radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 40px),
+    radial-gradient(rgba(255,255,255,.4), rgba(255,255,255,.1) 2px, transparent 30px);
+  background-size: 550px 550px, 350px 350px, 250px 250px, 150px 150px;
+  background-position: 0 0, 40px 60px, 130px 270px, 70px 100px;
+  color: #f8fafc;
+}
+
+/* Tự động đổi màu các text tối thành sáng khi ở chế độ dark mode (Bắt cả các class có responsive như md:text-coffee-dark) */
+html.dark [class*="text-coffee-dark"],
+html.dark [class*="text-black"],
+html.dark [class*="text-gray-700"],
+html.dark [class*="text-gray-800"],
+html.dark [class*="text-gray-900"] {
+  color: #ffffff !important;
+}
+
+html.dark [class*="text-gray-400"],
+html.dark [class*="text-gray-500"],
+html.dark [class*="text-gray-600"] {
+  color: #f1f5f9 !important;
+}
+
+/* Tự động đổi các thẻ trắng sang trong suốt mờ (bắt cả các thẻ bg-white/50, bg-white/80...) */
+html.dark .bg-white, html.dark [class*="bg-white/"] {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+/* Đổi các nền màu sáng (được dùng ở nút bấm, huy hiệu) sang mờ */
+html.dark .bg-gray-50, html.dark .bg-gray-100, 
+html.dark .bg-slate-50, html.dark .bg-orange-50, 
+html.dark .bg-yellow-50, html.dark .bg-rose-50,
+html.dark .hover\:bg-gray-200:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Xóa bỏ nền Gradient màu trắng của các thẻ Lịch biểu diễn */
+html.dark [class*="from-white"] {
+  --tw-gradient-from: rgba(255, 255, 255, 0.05) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(255, 255, 255, 0)) !important;
+}
+html.dark [class*="via-white"] {
+  --tw-gradient-via: rgba(255, 255, 255, 0.05) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to, rgba(255, 255, 255, 0)) !important;
+}
+html.dark [class*="to-white"], html.dark .to-rose-50\/50 {
+  --tw-gradient-to: rgba(255, 255, 255, 0.05) !important;
+}
+
+html.dark .glass-effect {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Sửa lỗi viền trắng */
+html.dark .border-white { border-color: rgba(255, 255, 255, 0.1); }
+html.dark .border-gray-100, html.dark .border-gray-200, html.dark .border-gray-300 { border-color: rgba(255, 255, 255, 0.08); }

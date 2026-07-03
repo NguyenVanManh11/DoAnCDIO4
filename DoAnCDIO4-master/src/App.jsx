@@ -25,7 +25,7 @@ import AdminLayout from './admin/AdminLayout'
 function App() {
   const location = useLocation()
   const navigate = useNavigate()
-  
+
   // Extract table ID if accessed via QR Code
   const queryParams = new URLSearchParams(location.search)
   const tableParam = queryParams.get('table')
@@ -48,8 +48,15 @@ function App() {
   // Global Notification Banner
   const [notification, setNotification] = useState('')
 
-  const showNotify = (msg) => {
+  const showNotify = async (msg) => {
     setNotification(msg)
+    try {
+      if (localStorage.getItem('customer_sound_enabled') !== 'false') {
+        const { playNotificationSound } = await import('./utils/audioUtils');
+        const soundType = localStorage.getItem('notify_sound_type') || 'ting';
+        playNotificationSound(soundType);
+      }
+    } catch (e) { console.error(e) }
     setTimeout(() => setNotification(''), 3500)
   }
 
@@ -66,6 +73,21 @@ function App() {
   }
 
   // Protect specific routes from guests
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('theme') === 'dark'
+  })
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark')
+      localStorage.setItem('theme', 'dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      localStorage.setItem('theme', 'light')
+    }
+  }, [isDarkMode])
+
+  // Fetch points from DB on mount
   useEffect(() => {
     const isProtectedRoute = ['/history', '/profile'].includes(location.pathname)
     if (!user && isProtectedRoute) {
@@ -174,23 +196,6 @@ function App() {
     setCartOpen(false)
 
     let completionMessage = `Đặt đơn ${deliveryInfo.code} thành công! Giá trị: ${totalAmount.toLocaleString()}đ.`
-    
-    if (user) {
-      const earnedPoints = calculateOrderPoints(totalAmount)
-      const newPoints = (user.TongDiem || 0) + earnedPoints
-      const newRank = getMembershipRank(newPoints)
-      
-      const updatedUser = {
-        ...user,
-        TongDiem: newPoints,
-        HangThanhVienID: newRank.id,
-        TenHang: newRank.name,
-        GiamGia: newRank.discount
-      }
-      setUser(updatedUser)
-      localStorage.setItem('coffee_user', JSON.stringify(updatedUser))
-      completionMessage += ` 🎁 Bạn đã tích lũy thêm +${earnedPoints} điểm (Hạng ${newRank.name})!`
-    }
 
     if (orderType === 'Giao Hàng') {
       completionMessage += ` Đồ uống sẽ được giao tới SĐT: ${deliveryInfo.phone}.`
@@ -229,7 +234,7 @@ function App() {
 
       {/* Alert Notification Banner */}
       {notification && (
-        <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-[100] bg-coffee-dark/95 backdrop-blur-md text-white text-size-1 font-black py-4 px-8 rounded-full border-2 border-coffee-yellow shadow-2xl text-center w-max animate-bounce max-w-[90vw]">
+        <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-[100] bg-coffee-dark/95 backdrop-blur-md text-white text-size-1 font-black py-4 px-8 rounded-full border-2 border-coffee-yellow shadow-2xl text-center w-[90%] md:w-max max-w-md animate-bounce">
           <i className="fa-solid fa-bell text-coffee-yellow mr-2"></i> {notification}
         </div>
       )}
@@ -242,10 +247,12 @@ function App() {
         setAuthModalOpen={setAuthModalOpen}
         setAuthModalMode={setAuthModalMode}
         onLogout={handleLogout}
+        isDarkMode={isDarkMode}
+        setIsDarkMode={setIsDarkMode}
       />
 
       {/* Main Routes */}
-      <div className="flex-1 w-full flex flex-col justify-start">
+      <div className="flex-1 w-full flex flex-col justify-start pt-20">
         <Routes>
           <Route path="/" element={<HomeView />} />
           <Route path="/features" element={<FeaturesView />} />
@@ -268,6 +275,10 @@ function App() {
                 reviews={reviews}
                 onOpenReview={(order, item) => setActiveReview({ order, item })}
                 showNotify={showNotify}
+                onUpdateUser={(updated) => {
+                  setUser(updated)
+                  localStorage.setItem('coffee_user', JSON.stringify(updated))
+                }}
               />
             }
           />
@@ -294,9 +305,9 @@ function App() {
 
       {/* Modals & Sidebar Panels */}
       {authModalOpen && (
-        <AuthModal 
-          onClose={() => setAuthModalOpen(false)} 
-          onLogin={handleLogin} 
+        <AuthModal
+          onClose={() => setAuthModalOpen(false)}
+          onLogin={handleLogin}
           initialMode={authModalMode}
         />
       )}

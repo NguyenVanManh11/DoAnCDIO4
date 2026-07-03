@@ -33,16 +33,16 @@ const BookingView = ({ user, showNotify, onRequireLogin }) => {
 
       if (error) throw error
       if (data && data.length > 0) {
-        // Map DB tables to layout positions
+        // Map DB tables to layout positions (Realtime from DB)
         const mapped = data.map((t, idx) => {
-          const pos = TABLE_POSITIONS[idx % TABLE_POSITIONS.length] || { left: '50%', top: '50%' }
+          const fallbackPos = TABLE_POSITIONS[idx % TABLE_POSITIONS.length] || { left: '50%', top: '50%' }
           return {
             id: t.BanID,
             name: t.TenBan,
             seats: t.SucChua,
             type: t.SucChua > 4 ? 'rect' : 'round',
-            top: pos.top,
-            left: pos.left,
+            top: t.ToaDoY || fallbackPos.top,
+            left: t.ToaDoX || fallbackPos.left,
             status: t.TrangThai,
             locked: t.TrangThai !== 'Trong'
           }
@@ -164,34 +164,34 @@ const BookingView = ({ user, showNotify, onRequireLogin }) => {
 
   return (
     <section className="p-4 md:p-8 max-w-7xl mx-auto animate-fade-in">
-      <h2 className="text-size-2 font-black uppercase text-coffee-dark text-center mb-8 tracking-tighter">
+      <h2 className="text-size-2 font-black uppercase text-coffee-dark dark:text-emerald-400 text-center mb-8 tracking-tighter">
         Đặt Bàn Giữ Chỗ
       </h2>
       
       <div className="flex flex-col lg:flex-row gap-6 items-start">
         {/* Sơ đồ bản đồ */}
-        <div className="w-full lg:w-[65%] glass-effect p-4 md:p-6 rounded-[2.5rem] shadow-xl border border-white">
+        <div className="w-full lg:w-[65%] glass-effect p-4 md:p-6 rounded-[2.5rem] shadow-xl border border-white dark:border-slate-800">
           <div className="flex justify-between items-center mb-4 px-2">
-            <h3 className="text-size-1 font-black uppercase tracking-widest text-coffee-dark">
+            <h3 className="text-size-1 font-black uppercase tracking-widest text-coffee-dark dark:text-gray-100">
               Sơ Đồ Không Gian
             </h3>
             <div className="flex gap-3 flex-wrap">
-              <span className="flex items-center gap-1.5 text-size-1 font-bold">
-                <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 bg-white"></div> Trống
+              <span className="flex items-center gap-1.5 text-size-1 font-bold dark:text-gray-300">
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 bg-white dark:bg-slate-800"></div> Trống
               </span>
-              <span className="flex items-center gap-1.5 text-size-1 font-bold">
+              <span className="flex items-center gap-1.5 text-size-1 font-bold dark:text-gray-300">
                 <div className="w-3.5 h-3.5 rounded-full bg-coffee-green border-2 border-coffee-green"></div> Đang chọn
               </span>
-              <span className="flex items-center gap-1.5 text-size-1 font-bold">
+              <span className="flex items-center gap-1.5 text-size-1 font-bold dark:text-gray-300">
                 <div className="w-3.5 h-3.5 rounded-full bg-coffee-yellow border-2 border-coffee-yellow"></div> Đã đặt
               </span>
-              <span className="flex items-center gap-1.5 text-size-1 font-bold">
+              <span className="flex items-center gap-1.5 text-size-1 font-bold dark:text-gray-300">
                 <div className="w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-red-500"></div> Đang dùng
               </span>
             </div>
           </div>
 
-          <div className="relative w-full aspect-[4/3] md:aspect-[16/9] bg-white/50 rounded-[2rem] border-2 border-dashed border-gray-300 overflow-hidden shadow-inner">
+          <div className="relative w-full aspect-[4/3] md:aspect-[16/9] bg-white/50 dark:bg-slate-800/50 rounded-[2rem] border-2 border-dashed border-gray-300 dark:border-slate-600 overflow-hidden shadow-inner">
             <div
               className="absolute inset-0"
               style={{
@@ -275,8 +275,8 @@ const BookingView = ({ user, showNotify, onRequireLogin }) => {
         </div>
 
         {/* Form chi tiết đặt bàn */}
-        <div className="w-full lg:w-[35%] glass-effect p-6 md:p-8 rounded-[2.5rem] shadow-xl shrink-0 border border-white">
-          <h3 className="text-size-1 font-black uppercase text-coffee-dark tracking-widest mb-6">
+        <div className="w-full lg:w-[35%] glass-effect p-6 md:p-8 rounded-[2.5rem] shadow-xl shrink-0 border border-white dark:border-slate-800">
+          <h3 className="text-size-1 font-black uppercase text-coffee-dark dark:text-gray-100 tracking-widest mb-6">
             Chi tiết đặt bàn
           </h3>
           {!selectedTable && (
@@ -285,14 +285,14 @@ const BookingView = ({ user, showNotify, onRequireLogin }) => {
             </p>
           )}
           <form onSubmit={handleBook} className="space-y-4">
-            <div className="bg-white/80 p-4 rounded-2xl border border-white">
-              <p className="text-size-0 font-bold text-gray-500 mb-1">Bàn đã chọn</p>
-              <p className="text-size-1 font-black text-coffee-green">
+            <div className="bg-white/80 dark:bg-slate-800 p-4 rounded-2xl border border-white dark:border-slate-700">
+              <p className="text-size-0 font-bold text-gray-500 dark:text-gray-400 mb-1">Bàn đã chọn</p>
+              <p className="text-size-1 font-black text-coffee-green dark:text-emerald-400">
                 {selectedTable ? `${selectedTable.name} (${selectedTable.seats} ghế)` : '---'}
               </p>
             </div>
             <div>
-              <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Ngày đến</label>
+              <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ngày đến</label>
               <input
                 type="date"
                 required
@@ -304,7 +304,7 @@ const BookingView = ({ user, showNotify, onRequireLogin }) => {
               />
             </div>
             <div>
-              <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Giờ đến</label>
+              <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 dark:text-gray-400 uppercase tracking-wider">Giờ đến</label>
               <input
                 type="time"
                 required
@@ -315,7 +315,7 @@ const BookingView = ({ user, showNotify, onRequireLogin }) => {
               />
             </div>
             <div>
-              <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Ghi chú</label>
+              <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ghi chú</label>
               <textarea
                 rows="2"
                 value={note}

@@ -7,9 +7,11 @@ const VoucherView = ({ showNotify }) => {
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [editingVoucher, setEditingVoucher] = useState(null)
+  const [formName, setFormName] = useState('')
   const [formCode, setFormCode] = useState('')
   const [formType, setFormType] = useState('PhanTram')
   const [formValue, setFormValue] = useState(10)
+  const [formMaxValue, setFormMaxValue] = useState(30000)
   const [formMinOrder, setFormMinOrder] = useState(50000)
   const [formQty, setFormQty] = useState(100)
   
@@ -41,8 +43,10 @@ const VoucherView = ({ showNotify }) => {
   const openAddModal = () => {
     setEditingVoucher(null)
     setFormCode('')
+    setFormName('')
     setFormType('PhanTram')
     setFormValue(10)
+    setFormMaxValue(30000)
     setFormMinOrder(50000)
     setFormQty(100)
     setShowModal(true)
@@ -50,11 +54,13 @@ const VoucherView = ({ showNotify }) => {
 
   const openEditModal = (v) => {
     setEditingVoucher(v)
-    setFormCode(v.MaVoucher)
-    setFormType(v.LoaiGiamGia)
-    setFormValue(v.GiaTriGiam)
-    setFormMinOrder(v.DonHangToiThieu)
-    setFormQty(v.SoLuong)
+    setFormCode(v.MaVoucher || '')
+    setFormName(v.TenVoucher || '')
+    setFormType(v.LoaiGiamGia || 'PhanTram')
+    setFormValue(v.GiaTriGiam || 10)
+    setFormMaxValue(v.GiaTriGiamToiDa || 0)
+    setFormMinOrder(v.DonHangToiThieu || 0)
+    setFormQty(v.SoLuong || 100)
     setShowModal(true)
   }
 
@@ -79,8 +85,10 @@ const VoucherView = ({ showNotify }) => {
         try {
           await supabase.from('voucher').update({
             MaVoucher: formCode,
+            TenVoucher: formName,
             LoaiGiamGia: formType,
             GiaTriGiam: formValue,
+            GiaTriGiamToiDa: formMaxValue,
             DonHangToiThieu: formMinOrder,
             SoLuong: formQty
           }).eq('VoucherID', editingVoucher.VoucherID)
@@ -91,8 +99,10 @@ const VoucherView = ({ showNotify }) => {
       setVouchers(prev => prev.map(v => v.VoucherID === editingVoucher.VoucherID ? {
         ...v,
         MaVoucher: formCode,
+        TenVoucher: formName,
         LoaiGiamGia: formType,
         GiaTriGiam: Number(formValue),
+        GiaTriGiamToiDa: Number(formMaxValue),
         DonHangToiThieu: Number(formMinOrder),
         SoLuong: Number(formQty)
       } : v))
@@ -102,8 +112,10 @@ const VoucherView = ({ showNotify }) => {
       let newVoucher = {
         VoucherID: Date.now(),
         MaVoucher: formCode,
+        TenVoucher: formName,
         LoaiGiamGia: formType,
         GiaTriGiam: Number(formValue),
+        GiaTriGiamToiDa: Number(formMaxValue),
         DonHangToiThieu: Number(formMinOrder),
         SoLuong: Number(formQty),
         TrangThai: 'HoatDong'
@@ -115,8 +127,10 @@ const VoucherView = ({ showNotify }) => {
             .from('voucher')
             .insert({
               MaVoucher: formCode,
+              TenVoucher: formName,
               LoaiGiamGia: formType,
               GiaTriGiam: Number(formValue),
+              GiaTriGiamToiDa: Number(formMaxValue),
               DonHangToiThieu: Number(formMinOrder),
               SoLuong: Number(formQty),
               TrangThai: 'HoatDong'
@@ -162,21 +176,30 @@ const VoucherView = ({ showNotify }) => {
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="border-b border-gray-100 text-size-0 font-black uppercase tracking-wider text-gray-400">
-                <th className="pb-4 pl-4">Mã Khuyến Mãi</th>
+                <th className="pb-4 pl-4">Khuyến Mãi</th>
                 <th className="pb-4">Loại Giảm</th>
                 <th className="pb-4">Mức Giảm</th>
+                <th className="pb-4">Giảm Tối Đa</th>
                 <th className="pb-4">Đơn Tối Thiểu</th>
-                <th className="pb-4">Số Lượng</th>
+                <th className="pb-4">SL</th>
                 <th className="pb-4 pr-4 text-right">Trạng Thái</th>
               </tr>
             </thead>
             <tbody>
               {vouchers.map(v => (
                 <tr key={v.VoucherID} className="border-b border-gray-50 hover:bg-white/40 transition-colors font-bold">
-                  <td className="py-4 pl-4 text-coffee-dark text-size-1">{v.MaVoucher}</td>
-                  <td className="py-4 text-gray-600 text-size-1">{v.LoaiGiamGia === 'TienMat' ? 'Tiền Mặt' : 'Phần Trăm'}</td>
+                  <td className="py-4 pl-4">
+                    <div className="flex flex-col">
+                      <span className="text-coffee-dark text-size-1">{v.MaVoucher}</span>
+                      <span className="text-gray-500 text-[0.75rem] font-medium truncate max-w-[200px]">{v.TenVoucher || 'Chưa có tên'}</span>
+                    </div>
+                  </td>
+                  <td className="py-4 text-gray-600 text-size-1">{v.LoaiGiamGia === 'TienMat' ? 'Tiền Mặt' : v.LoaiGiamGia === 'FreeShip' ? 'Giao Hàng' : 'Phần Trăm'}</td>
                   <td className="py-4 text-coffee-green text-size-1">
-                    {v.LoaiGiamGia === 'TienMat' ? `${parseFloat(v.GiaTriGiam).toLocaleString()}đ` : `${v.GiaTriGiam}%`}
+                    {v.LoaiGiamGia === 'TienMat' ? `${parseFloat(v.GiaTriGiam).toLocaleString()}đ` : v.LoaiGiamGia === 'FreeShip' ? 'Miễn phí' : `${v.GiaTriGiam}%`}
+                  </td>
+                  <td className="py-4 text-amber-600 text-size-1">
+                    {v.LoaiGiamGia === 'PhanTram' && v.GiaTriGiamToiDa ? `${parseFloat(v.GiaTriGiamToiDa).toLocaleString()}đ` : '-'}
                   </td>
                   <td className="py-4 text-gray-600 text-size-1">{parseFloat(v.DonHangToiThieu).toLocaleString()}đ</td>
                   <td className="py-4 text-gray-600 text-size-1">{v.SoLuong}</td>
@@ -215,23 +238,35 @@ const VoucherView = ({ showNotify }) => {
             <form onSubmit={handleSaveVoucher} className="space-y-4">
               <div>
                 <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Mã Khuyến Mãi</label>
-                <input type="text" required value={formCode} onChange={(e) => setFormCode(e.target.value)} className="w-full py-2.5 px-4 rounded-2xl bg-white/80 border border-gray-200 text-size-1 font-bold outline-none" placeholder="VD: SUMMER10" />
+                <input type="text" required value={formCode} onChange={(e) => setFormCode(e.target.value)} className="w-full py-2.5 px-4 rounded-2xl bg-white/80 border border-gray-200 text-size-1 font-bold outline-none uppercase" placeholder="VD: SUMMER10" />
               </div>
               <div>
-                <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Loại Giảm Giá</label>
+                <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Tên Khuyến Mãi (Hiển thị cho khách)</label>
+                <input type="text" required value={formName} onChange={(e) => setFormName(e.target.value)} className="w-full py-2.5 px-4 rounded-2xl bg-white/80 border border-gray-200 text-size-1 font-bold outline-none" placeholder="VD: Giảm 10% Tối Đa 30k" />
+              </div>
+              <div>
+                <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Hình Thức Áp Dụng</label>
                 <CustomDropdown
                   options={[
                     { value: 'PhanTram', label: 'Phần Trăm (%)', icon: 'fa-percent', color: 'bg-amber-100 text-amber-800' },
-                    { value: 'TienMat', label: 'Tiền Mặt (VNĐ)', icon: 'fa-money-bill', color: 'bg-emerald-100 text-emerald-800' }
+                    { value: 'TienMat', label: 'Tiền Mặt (VNĐ)', icon: 'fa-money-bill', color: 'bg-emerald-100 text-emerald-800' },
+                    { value: 'FreeShip', label: 'Miễn Phí Giao Hàng', icon: 'fa-motorcycle', color: 'bg-blue-100 text-blue-800' }
                   ]}
                   value={formType}
                   onChange={(val) => setFormType(val)}
-                  placeholder="Chọn loại giảm giá"
+                  placeholder="Chọn hình thức"
                 />
               </div>
-              <div>
-                <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Mức Giảm</label>
-                <input type="number" required value={formValue} onChange={(e) => setFormValue(Number(e.target.value))} className="w-full py-2.5 px-4 rounded-2xl bg-white/80 border border-gray-200 text-size-1 font-bold outline-none" placeholder="10" />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Mức Giảm {formType === 'PhanTram' ? '(%)' : formType === 'TienMat' ? '(VNĐ)' : ''}</label>
+                  <input type="number" required={formType !== 'FreeShip'} disabled={formType === 'FreeShip'} value={formType === 'FreeShip' ? 0 : formValue} onChange={(e) => setFormValue(Number(e.target.value))} className="w-full py-2.5 px-4 rounded-2xl bg-white/80 border border-gray-200 text-size-1 font-bold outline-none disabled:opacity-50" placeholder="VD: 10" />
+                </div>
+                <div>
+                  <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Giảm Tối Đa (VNĐ)</label>
+                  <input type="number" required={formType === 'PhanTram'} disabled={formType !== 'PhanTram'} value={formType !== 'PhanTram' ? 0 : formMaxValue} onChange={(e) => setFormMaxValue(Number(e.target.value))} className="w-full py-2.5 px-4 rounded-2xl bg-white/80 border border-gray-200 text-size-1 font-bold outline-none disabled:opacity-50" placeholder="VD: 30000" />
+                </div>
               </div>
               <div>
                 <label className="block text-size-0 font-bold mb-1 ml-2 text-gray-500 uppercase tracking-wider">Đơn Tối Thiểu</label>

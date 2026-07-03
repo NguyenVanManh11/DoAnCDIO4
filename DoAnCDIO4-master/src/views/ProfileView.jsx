@@ -237,9 +237,53 @@ const ProfileView = ({ user, onLogout, onUpdateUser, showNotify }) => {
                 <i className="fa-solid fa-pen-to-square mr-2"></i> Chỉnh Sửa Hồ Sơ
               </button>
             )}
+
+            {/* Cài đặt âm thanh cho khách hàng */}
+            <div className="bg-white/60 dark:bg-slate-800/60 p-4 rounded-2xl border border-white dark:border-slate-700 shadow-sm mt-4">
+              <p className="text-size-1 font-black text-coffee-dark mb-3 uppercase tracking-wider">Cài đặt thông báo</p>
+              
+              <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-700 pb-3 mb-3">
+                <span className="text-sm font-bold text-gray-600 dark:text-gray-300">Bật âm thanh báo đơn</span>
+                <button 
+                  onClick={() => {
+                    const currentState = localStorage.getItem('customer_sound_enabled') !== 'false';
+                    localStorage.setItem('customer_sound_enabled', (!currentState).toString());
+                    // Force re-render trick
+                    setIsEditing(prev => prev);
+                    // Quick state trigger
+                    document.documentElement.click();
+                  }}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${localStorage.getItem('customer_sound_enabled') !== 'false' ? 'bg-coffee-green' : 'bg-gray-300 dark:bg-slate-600'}`}
+                >
+                  <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${localStorage.getItem('customer_sound_enabled') !== 'false' ? 'translate-x-7' : 'translate-x-1'}`}></div>
+                </button>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-bold text-gray-600 dark:text-gray-300">Kiểu âm thanh</span>
+                <select
+                  defaultValue={localStorage.getItem('notify_sound_type') || 'ting'}
+                  onChange={(e) => {
+                    localStorage.setItem('notify_sound_type', e.target.value);
+                    if (localStorage.getItem('customer_sound_enabled') !== 'false') {
+                      import('../utils/audioUtils').then(({ playNotificationSound }) => {
+                        playNotificationSound(e.target.value);
+                      });
+                    }
+                  }}
+                  disabled={localStorage.getItem('customer_sound_enabled') === 'false'}
+                  className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-bold outline-none dark:text-gray-200"
+                >
+                  <option value="ting">Tiếng Ting</option>
+                  <option value="beep">Tiếng Bíp</option>
+                  <option value="tingting">Ting Ting</option>
+                </select>
+              </div>
+            </div>
+
             <button
               onClick={onLogout}
-              className="w-full btn-danger py-3 text-size-1"
+              className="w-full btn-danger py-3 text-size-1 mt-4"
             >
               Đăng Xuất Tài Khoản
             </button>
